@@ -8,6 +8,10 @@ import '../../core/providers/progress_provider.dart';
 import '../../core/widgets/kiddo_card.dart';
 import '../parent/parent_dashboard_screen.dart';
 
+import '../auth/services/auth_service.dart';
+import '../auth/screens/login_screen.dart';
+import '../auth/providers/user_provider.dart';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -44,6 +48,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
+
+
             const SizedBox(height: AppSpacing.medium),
 
             KiddoCard(
@@ -65,6 +71,37 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
             ),
+
+            const SizedBox(height: AppSpacing.medium),
+
+            KiddoCard(
+              child: ListTile(
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.coral,
+                ),
+                title: const Text('Logout'),
+                subtitle: const Text('Sign out from your account'),
+                onTap: () async {
+                  await AuthService().logout();
+                  ref.invalidate(authStateProvider);
+                  ref.invalidate(currentUserProvider);
+
+                  ref.read(progressProvider.notifier).resetProgress();
+
+                  if (!context.mounted) return;
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LoginScreen(),
+                    ),
+                        (route) => false,
+                  );
+                },
+              ),
+            ),
+
+
 
             const SizedBox(height: AppSpacing.medium),
 

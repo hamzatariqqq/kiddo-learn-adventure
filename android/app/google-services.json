@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "424332400754",
+    "project_id": "kiddo-learn-b6eb7",
+    "storage_bucket": "kiddo-learn-b6eb7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:424332400754:android:4d0aabe8086c5125f7caeb",
+        "android_client_info": {
+          "package_name": "com.example.kiddo_learn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpgTxNbwF-F1DFy7EqSqWoZA8Sc6Q1rIU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

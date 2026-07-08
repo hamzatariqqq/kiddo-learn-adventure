@@ -1,21 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/data/color_data.dart';
-import '../../../core/providers/progress_provider.dart';
 
-class ColorsQuizScreen extends ConsumerStatefulWidget {
+class ColorsQuizScreen extends StatefulWidget {
   const ColorsQuizScreen({super.key});
 
   @override
-  ConsumerState<ColorsQuizScreen> createState() =>
-      _ColorsQuizScreenState();
+  State<ColorsQuizScreen> createState() => _ColorsQuizScreenState();
 }
 
-class _ColorsQuizScreenState extends ConsumerState<ColorsQuizScreen> {
+class _ColorsQuizScreenState extends State<ColorsQuizScreen> {
   final colors = ColorData.items;
 
   int currentQuestion = 0;
@@ -37,6 +36,27 @@ class _ColorsQuizScreenState extends ConsumerState<ColorsQuizScreen> {
 
     options.shuffle();
     return options;
+  }
+
+  Future<void> addStarsToFirestore(int stars) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'stars': FieldValue.increment(stars),
+    });
+  }
+
+  Future<void> completeLessonInFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'completedLessons': FieldValue.increment(1),
+      'streak': FieldValue.increment(1),
+    });
   }
 
   @override
@@ -98,39 +118,43 @@ class _ColorsQuizScreenState extends ConsumerState<ColorsQuizScreen> {
     final name = colorItem['name'] as String;
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
         final correctName = colors[currentQuestion]['name'] as String;
         final bool isCorrect = name == correctName;
 
         if (isCorrect) {
           score++;
-          ref.read(progressProvider.notifier).addStars(5);
+          await addStarsToFirestore(5);
         }
+
+        if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isCorrect ? 'Correct! 🎉  +5 Stars ⭐' : 'Try Again 😊',
+              isCorrect ? 'Correct! 🎉 +5 Stars ⭐' : 'Try Again 😊',
             ),
             backgroundColor: isCorrect ? AppColors.green : AppColors.coral,
             behavior: SnackBarBehavior.floating,
           ),
         );
 
-        setState(() {
-          if (currentQuestion < colors.length - 1) {
+        if (currentQuestion < colors.length - 1) {
+          setState(() {
             currentQuestion++;
-          } else {
-            ref.read(progressProvider.notifier).completeLesson();
+          });
+        } else {
+          await completeLessonInFirestore();
 
-            Future.delayed(
-              const Duration(milliseconds: 400),
-                  () {
-                _showQuizCompleteDialog();
-              },
-            );
-          }
-        });
+          if (!mounted) return;
+
+          Future.delayed(
+            const Duration(milliseconds: 400),
+                () {
+              _showQuizCompleteDialog();
+            },
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
