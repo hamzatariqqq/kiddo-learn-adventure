@@ -39,11 +39,7 @@ class SubjectCard extends StatelessWidget {
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 32,
-                ),
+                child: Icon(icon, color: color, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -61,18 +57,12 @@ class SubjectCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
-              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white),
             ],
           ),
         ),

@@ -18,9 +18,7 @@ class BadgesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('My Badges'),
-      ),
+      appBar: AppBar(title: const Text('My Badges')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
@@ -45,9 +43,7 @@ class BadgesScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${progress.completedLessons} lessons completed',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.white,
-                    ),
+                    style: AppTextStyles.body.copyWith(color: AppColors.white),
                   ),
                 ],
               ),
@@ -55,10 +51,7 @@ class BadgesScreen extends ConsumerWidget {
 
             const SizedBox(height: AppSpacing.large),
 
-            const Text(
-              'Your Badges',
-              style: AppTextStyles.headingMedium,
-            ),
+            const Text('Your Badges', style: AppTextStyles.headingMedium),
 
             const SizedBox(height: AppSpacing.medium),
 
@@ -77,10 +70,7 @@ class BadgesScreen extends ConsumerWidget {
                 final isUnlocked =
                     progress.completedLessons >= badge.requiredLessons;
 
-                return BadgeCard(
-                  badge: badge,
-                  isUnlocked: isUnlocked,
-                );
+                return BadgeCard(badge: badge, isUnlocked: isUnlocked);
               },
             ),
           ],

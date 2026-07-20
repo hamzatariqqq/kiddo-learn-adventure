@@ -15,19 +15,14 @@ class ColorsLessonScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn Colors'),
-      ),
+      appBar: AppBar(title: const Text('Learn Colors')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.large),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Learn Colors',
-                style: AppTextStyles.headingLarge,
-              ),
+              const Text('Learn Colors', style: AppTextStyles.headingLarge),
               const SizedBox(height: AppSpacing.small),
               const Text(
                 'Tap and learn different colors.',
@@ -50,7 +45,9 @@ class ColorsLessonScreen extends StatelessWidget {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: (colorItem['color'] as Color).withValues(alpha: 0.18),
+                      color: (colorItem['color'] as Color).withValues(
+                        alpha: 0.18,
+                      ),
                       borderRadius: BorderRadius.circular(26),
                     ),
                     child: Column(

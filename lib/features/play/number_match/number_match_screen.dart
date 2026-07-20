@@ -50,18 +50,12 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(
-              color: AppColors.primaryBlue,
-              width: 2,
-            ),
+            side: const BorderSide(color: AppColors.primaryBlue, width: 2),
           ),
         ),
         child: Text(
           '$number',
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -71,9 +65,7 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Number Match'),
-      ),
+      appBar: AppBar(title: const Text('Number Match')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -90,10 +82,7 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
             const Text(
               'Tap the number that matches the dots.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 36),
             Container(
@@ -107,11 +96,7 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
                 alignment: WrapAlignment.center,
                 spacing: 18,
                 runSpacing: 18,
-                children: [
-                  _Dot(),
-                  _Dot(),
-                  _Dot(),
-                ],
+                children: [_Dot(), _Dot(), _Dot()],
               ),
             ),
             const SizedBox(height: 36),

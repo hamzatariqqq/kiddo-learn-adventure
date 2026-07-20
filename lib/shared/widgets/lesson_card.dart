@@ -4,10 +4,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 
 class LessonCard extends StatelessWidget {
-  const LessonCard({
-    super.key,
-    required this.onTap,
-  });
+  const LessonCard({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
@@ -37,10 +34,7 @@ class LessonCard extends StatelessWidget {
             SizedBox(height: AppSpacing.small),
             Text(
               'Let’s learn counting!',
-              style: TextStyle(
-                fontSize: 17,
-                color: AppColors.white,
-              ),
+              style: TextStyle(fontSize: 17, color: AppColors.white),
             ),
           ],
         ),

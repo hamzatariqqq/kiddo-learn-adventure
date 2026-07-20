@@ -29,10 +29,7 @@ class DailyGoalCard extends StatelessWidget {
           SizedBox(height: AppSpacing.small),
           Text(
             '3 of 5 lessons completed',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
           ),
           SizedBox(height: AppSpacing.medium),
           LinearProgressIndicator(

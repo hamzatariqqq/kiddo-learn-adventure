@@ -41,18 +41,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MainNavigationScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -70,10 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                Text(
-                  'Welcome Back',
-                  style: AppTextStyles.headingLarge,
-                ),
+                Text('Welcome Back', style: AppTextStyles.headingLarge),
 
                 const SizedBox(height: AppSpacing.small),
 

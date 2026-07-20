@@ -22,12 +22,12 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
           .doc(user.uid)
           .snapshots()
           .map((snapshot) {
-        if (!snapshot.exists || snapshot.data() == null) {
-          return null;
-        }
+            if (!snapshot.exists || snapshot.data() == null) {
+              return null;
+            }
 
-        return UserModel.fromMap(snapshot.data()!);
-      });
+            return UserModel.fromMap(snapshot.data()!);
+          });
     },
     loading: () => Stream.value(null),
     error: (error, stackTrace) => Stream.value(null),

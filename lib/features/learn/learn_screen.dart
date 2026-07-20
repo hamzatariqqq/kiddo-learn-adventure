@@ -17,19 +17,14 @@ class LearnScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn'),
-      ),
+      appBar: AppBar(title: const Text('Learn')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.large),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Choose a Subject',
-                style: AppTextStyles.headingLarge,
-              ),
+              const Text('Choose a Subject', style: AppTextStyles.headingLarge),
 
               const SizedBox(height: AppSpacing.small),
 

@@ -11,9 +11,7 @@ class PlayScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Play Zone'),
-      ),
+      appBar: AppBar(title: const Text('Play Zone')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -30,10 +28,7 @@ class PlayScreen extends StatelessWidget {
             const SizedBox(height: 8),
             const Text(
               'Play and learn at the same time!',
-              style: TextStyle(
-                fontSize: 17,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 17, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
 
@@ -55,11 +50,7 @@ class PlayScreen extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(
-                      Icons.numbers_rounded,
-                      color: Colors.white,
-                      size: 48,
-                    ),
+                    Icon(Icons.numbers_rounded, color: Colors.white, size: 48),
                     SizedBox(width: 16),
                     Expanded(
                       child: Text(
@@ -71,10 +62,7 @@ class PlayScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white),
                   ],
                 ),
               ),
@@ -116,10 +104,7 @@ class PlayScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white),
                   ],
                 ),
               ),

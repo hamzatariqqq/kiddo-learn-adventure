@@ -19,9 +19,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
@@ -47,8 +45,6 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
             ),
-
-
 
             const SizedBox(height: AppSpacing.medium),
 
@@ -92,16 +88,12 @@ class SettingsScreen extends ConsumerWidget {
                   if (!context.mounted) return;
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const LoginScreen(),
-                    ),
-                        (route) => false,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
                   );
                 },
               ),
             ),
-
-
 
             const SizedBox(height: AppSpacing.medium),
 

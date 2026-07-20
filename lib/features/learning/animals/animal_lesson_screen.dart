@@ -24,9 +24,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn Animals'),
-      ),
+      appBar: AppBar(title: const Text('Learn Animals')),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
@@ -44,10 +42,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
               valueColor: const AlwaysStoppedAnimation(AppColors.green),
             ),
             const SizedBox(height: 40),
-            Text(
-              animal['emoji']!,
-              style: const TextStyle(fontSize: 100),
-            ),
+            Text(animal['emoji']!, style: const TextStyle(fontSize: 100)),
             const SizedBox(height: 24),
             Text(
               animal['name']!,
@@ -64,10 +59,10 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
                     onPressed: currentIndex == 0
                         ? null
                         : () {
-                      setState(() {
-                        currentIndex--;
-                      });
-                    },
+                            setState(() {
+                              currentIndex--;
+                            });
+                          },
                     child: const Text('Previous'),
                   ),
                 ),

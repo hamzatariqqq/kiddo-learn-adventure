@@ -22,11 +22,7 @@ class AchievementCard extends StatelessWidget {
       backgroundColor: color.withValues(alpha: 0.12),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 40,
-            color: color,
-          ),
+          Icon(icon, size: 40, color: color),
 
           const SizedBox(width: 16),
 
@@ -34,17 +30,11 @@ class AchievementCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.title,
-                ),
+                Text(title, style: AppTextStyles.title),
 
                 const SizedBox(height: 4),
 
-                Text(
-                  subtitle,
-                  style: AppTextStyles.bodySmall,
-                ),
+                Text(subtitle, style: AppTextStyles.bodySmall),
               ],
             ),
           ),

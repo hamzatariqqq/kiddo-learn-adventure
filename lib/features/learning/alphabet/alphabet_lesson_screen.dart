@@ -67,18 +67,12 @@ class _AlphabetLessonScreenState extends State<AlphabetLessonScreen> {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(
-                color: AppColors.orange,
-                width: 2,
-              ),
+              side: const BorderSide(color: AppColors.orange, width: 2),
             ),
           ),
           child: Text(
             letter,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -91,9 +85,7 @@ class _AlphabetLessonScreenState extends State<AlphabetLessonScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Alphabet Fun'),
-      ),
+      appBar: AppBar(title: const Text('Alphabet Fun')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -101,9 +93,7 @@ class _AlphabetLessonScreenState extends State<AlphabetLessonScreen> {
             LinearProgressIndicator(
               value: (currentQuestion + 1) / letters.length,
               minHeight: 10,
-              borderRadius: const BorderRadius.all(
-                Radius.circular(10),
-              ),
+              borderRadius: const BorderRadius.all(Radius.circular(10)),
               color: AppColors.orange,
               backgroundColor: AppColors.white,
             ),

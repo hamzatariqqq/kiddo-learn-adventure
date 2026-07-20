@@ -43,25 +43,19 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully ✅'),
-        ),
+        const SnackBar(content: Text('Account created successfully ✅')),
       );
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -79,10 +73,7 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const SizedBox(height: 40),
 
-                Text(
-                  'Create Account 🚀',
-                  style: AppTextStyles.headingLarge,
-                ),
+                Text('Create Account 🚀', style: AppTextStyles.headingLarge),
 
                 const SizedBox(height: AppSpacing.small),
 

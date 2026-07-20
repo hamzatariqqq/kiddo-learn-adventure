@@ -14,9 +14,5 @@ Future<void> main() async {
     debugPrint('Firebase initialization error ❌: $e');
   }
 
-  runApp(
-    const ProviderScope(
-      child: KiddoLearnApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: KiddoLearnApp()));
 }

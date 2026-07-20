@@ -21,18 +21,13 @@ class ParentDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Parent Dashboard'),
-      ),
+      appBar: AppBar(title: const Text('Parent Dashboard')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Child Progress',
-              style: AppTextStyles.headingLarge,
-            ),
+            Text('Child Progress', style: AppTextStyles.headingLarge),
 
             const SizedBox(height: AppSpacing.large),
 
@@ -72,10 +67,7 @@ class ParentDashboardScreen extends ConsumerWidget {
 
             const SizedBox(height: AppSpacing.large),
 
-            Text(
-              'Learning Summary',
-              style: AppTextStyles.headingMedium,
-            ),
+            Text('Learning Summary', style: AppTextStyles.headingMedium),
 
             const SizedBox(height: AppSpacing.medium),
 
@@ -113,27 +105,14 @@ class _DashboardRow extends StatelessWidget {
       children: [
         CircleAvatar(
           backgroundColor: color.withValues(alpha: 0.18),
-          child: Icon(
-            icon,
-            color: color,
-          ),
+          child: Icon(icon, color: color),
         ),
 
         const SizedBox(width: 16),
 
-        Expanded(
-          child: Text(
-            title,
-            style: AppTextStyles.title,
-          ),
-        ),
+        Expanded(child: Text(title, style: AppTextStyles.title)),
 
-        Text(
-          value,
-          style: AppTextStyles.headingMedium.copyWith(
-            color: color,
-          ),
-        ),
+        Text(value, style: AppTextStyles.headingMedium.copyWith(color: color)),
       ],
     );
   }

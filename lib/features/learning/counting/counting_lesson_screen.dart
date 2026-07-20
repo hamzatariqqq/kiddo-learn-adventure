@@ -6,7 +6,6 @@ import '../../../app/theme/app_text_styles.dart';
 import '../number_quiz/number_quiz_screen.dart';
 import '../../../core/data/number_data.dart';
 
-
 class CountingLessonScreen extends StatefulWidget {
   const CountingLessonScreen({super.key});
 
@@ -26,9 +25,7 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn Numbers'),
-      ),
+      appBar: AppBar(title: const Text('Learn Numbers')),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.large),
         child: Column(
@@ -60,10 +57,7 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
 
             const SizedBox(height: 8),
 
-            Text(
-              item['word']!,
-              style: AppTextStyles.headingMedium,
-            ),
+            Text(item['word']!, style: AppTextStyles.headingMedium),
 
             const SizedBox(height: 24),
 
@@ -86,10 +80,10 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                     onPressed: currentIndex == 0
                         ? null
                         : () {
-                      setState(() {
-                        currentIndex--;
-                      });
-                    },
+                            setState(() {
+                              currentIndex--;
+                            });
+                          },
                     child: const Text('Previous'),
                   ),
                 ),

@@ -3,8 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/progress_model.dart';
 
-final progressProvider =
-NotifierProvider<ProgressNotifier, ProgressModel>(
+final progressProvider = NotifierProvider<ProgressNotifier, ProgressModel>(
   ProgressNotifier.new,
 );
 
@@ -16,10 +15,7 @@ class ProgressNotifier extends Notifier<ProgressModel> {
   ProgressModel build() {
     _loadProgress();
 
-    return const ProgressModel(
-      stars: 0,
-      completedLessons: 0,
-    );
+    return const ProgressModel(stars: 0, completedLessons: 0);
   }
 
   Future<void> _loadProgress() async {
@@ -28,10 +24,7 @@ class ProgressNotifier extends Notifier<ProgressModel> {
     final stars = prefs.getInt(_starsKey) ?? 0;
     final completedLessons = prefs.getInt(_completedLessonsKey) ?? 0;
 
-    state = ProgressModel(
-      stars: stars,
-      completedLessons: completedLessons,
-    );
+    state = ProgressModel(stars: stars, completedLessons: completedLessons);
   }
 
   Future<void> _saveProgress() async {
@@ -60,10 +53,7 @@ class ProgressNotifier extends Notifier<ProgressModel> {
   }
 
   void resetProgress() {
-    state = const ProgressModel(
-      stars: 0,
-      completedLessons: 0,
-    );
+    state = const ProgressModel(stars: 0, completedLessons: 0);
 
     _saveProgress();
   }

@@ -31,14 +31,10 @@ class LessonCard extends StatelessWidget {
             height: 58,
             width: 58,
             decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
+              color: color.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 32,
-            ),
+            child: Icon(icon, color: color, size: 32),
           ),
 
           const SizedBox(width: 16),
@@ -47,15 +43,9 @@ class LessonCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: AppTextStyles.title,
-                ),
+                Text(title, style: AppTextStyles.title),
                 const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: AppTextStyles.bodySmall,
-                ),
+                Text(subtitle, style: AppTextStyles.bodySmall),
               ],
             ),
           ),

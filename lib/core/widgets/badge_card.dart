@@ -9,16 +9,11 @@ class BadgeCard extends StatelessWidget {
   final BadgeModel badge;
   final bool isUnlocked;
 
-  const BadgeCard({
-    super.key,
-    required this.badge,
-    required this.isUnlocked,
-  });
+  const BadgeCard({super.key, required this.badge, required this.isUnlocked});
 
   @override
   Widget build(BuildContext context) {
-    final Color badgeColor =
-    isUnlocked ? badge.color : AppColors.textLight;
+    final Color badgeColor = isUnlocked ? badge.color : AppColors.textLight;
 
     return KiddoCard(
       backgroundColor: badgeColor.withValues(alpha: 0.12),

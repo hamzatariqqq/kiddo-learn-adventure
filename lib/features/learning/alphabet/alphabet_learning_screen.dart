@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
-import '../alphabet_quiz/alphabet_quiz_screen.dart';
 import '../../../core/data/alphabet_data.dart';
+import '../alphabet_quiz/alphabet_quiz_screen.dart';
 
 class AlphabetLearningScreen extends StatefulWidget {
   const AlphabetLearningScreen({super.key});
@@ -21,82 +22,149 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
   @override
   Widget build(BuildContext context) {
     final item = alphabetItems[currentIndex];
-    final bool isLast = currentIndex == alphabetItems.length - 1;
+    final isLast = currentIndex == alphabetItems.length - 1;
+    final progress = (currentIndex + 1) / alphabetItems.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn Alphabets'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.large),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-
-            Text(
-              item['emoji']!,
-              style: const TextStyle(fontSize: 90),
-            ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              item['letter']!,
-              style: AppTextStyles.headingLarge.copyWith(
-                fontSize: 80,
-                color: AppColors.primaryBlue,
+      appBar: AppBar(title: const Text('Learn Alphabets')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.large),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Letter ${currentIndex + 1}',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                  Text(
+                    '${currentIndex + 1} / ${alphabetItems.length}',
+                    style: AppTextStyles.bodySmall,
+                  ),
+                ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-            Text(
-              '${item['letter']} for ${item['word']}',
-              style: AppTextStyles.headingMedium,
-              textAlign: TextAlign.center,
-            ),
-
-            const Spacer(),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: currentIndex == 0
-                        ? null
-                        : () {
-                      setState(() {
-                        currentIndex--;
-                      });
-                    },
-                    child: const Text('Previous'),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 10,
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.primaryBlue,
                   ),
                 ),
+              ),
 
-                const SizedBox(width: 12),
+              const SizedBox(height: 35),
 
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (isLast) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const AlphabetQuizScreen(),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                            item['emoji']!,
+                            key: ValueKey('${item['letter']}-emoji'),
+                            style: const TextStyle(fontSize: 90),
+                          )
+                          .animate(key: ValueKey(item['letter']))
+                          .fade(duration: 300.ms)
+                          .scale(
+                            begin: const Offset(0.7, 0.7),
+                            duration: 500.ms,
+                            curve: Curves.elasticOut,
                           ),
-                        );
-                      } else {
-                        setState(() {
-                          currentIndex++;
-                        });
-                      }
-                    },
-                    child: Text(isLast ? 'Start Quiz' : 'Next'),
+
+                      const SizedBox(height: 18),
+
+                      Text(
+                        item['letter']!,
+                        key: ValueKey('${item['letter']}-letter'),
+                        style: AppTextStyles.headingLarge.copyWith(
+                          fontSize: 80,
+                          color: AppColors.primaryBlue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ).animate().fade().slideY(begin: 0.2),
+
+                      const SizedBox(height: 12),
+
+                      Text(
+                        '${item['letter']} for ${item['word']}',
+                        style: AppTextStyles.headingMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+
+              const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: currentIndex == 0
+                          ? null
+                          : () {
+                              setState(() {
+                                currentIndex--;
+                              });
+                            },
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Previous'),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (isLast) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AlphabetQuizScreen(),
+                            ),
+                          );
+                        } else {
+                          setState(() {
+                            currentIndex++;
+                          });
+                        }
+                      },
+                      icon: Icon(
+                        isLast
+                            ? Icons.quiz_rounded
+                            : Icons.arrow_forward_rounded,
+                      ),
+                      label: Text(isLast ? 'Start Quiz' : 'Next'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

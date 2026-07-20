@@ -32,11 +32,7 @@ class CategoryCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 42,
-              color: color,
-            ),
+            Icon(icon, size: 42, color: color),
 
             const SizedBox(height: 12),
 
@@ -48,10 +44,7 @@ class CategoryCard extends StatelessWidget {
 
             const SizedBox(height: 6),
 
-            Text(
-              lessonCount,
-              style: AppTextStyles.bodySmall,
-            ),
+            Text(lessonCount, style: AppTextStyles.bodySmall),
           ],
         ),
       ),

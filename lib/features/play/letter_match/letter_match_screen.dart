@@ -50,18 +50,12 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(
-              color: AppColors.orange,
-              width: 2,
-            ),
+            side: const BorderSide(color: AppColors.orange, width: 2),
           ),
         ),
         child: Text(
           letter,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -71,9 +65,7 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Letter Match'),
-      ),
+      appBar: AppBar(title: const Text('Letter Match')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -90,10 +82,7 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
             const Text(
               'Tap the letter shown below.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 36),
             Container(
