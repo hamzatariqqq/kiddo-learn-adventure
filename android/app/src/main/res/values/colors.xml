@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+
+    <!-- Native splash-screen background -->
+    <color name="splash_background">#031A38</color>
+
+    <!-- Required by the adaptive launcher icon -->
+    <color name="ic_launcher_background">#071631</color>
+
 </resources>

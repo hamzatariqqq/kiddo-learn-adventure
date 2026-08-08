@@ -14,24 +14,24 @@ class BadgeData {
     ),
     BadgeModel(
       title: 'Learning Star',
-      description: 'Complete 5 lessons',
+      description: 'Complete 2 lessons',
       icon: Icons.star_rounded,
       color: AppColors.yellow,
-      requiredLessons: 5,
+      requiredLessons: 2,
     ),
     BadgeModel(
       title: 'Super Learner',
-      description: 'Complete 10 lessons',
+      description: 'Complete 3 lessons',
       icon: Icons.emoji_events_rounded,
       color: AppColors.primaryBlue,
-      requiredLessons: 10,
+      requiredLessons: 3,
     ),
     BadgeModel(
       title: 'Master Explorer',
-      description: 'Complete 25 lessons',
+      description: 'Complete 4 lessons',
       icon: Icons.rocket_launch_rounded,
       color: AppColors.purple,
-      requiredLessons: 25,
+      requiredLessons: 4,
     ),
   ];
 }

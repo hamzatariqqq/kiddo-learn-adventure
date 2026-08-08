@@ -1,6 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/data/alphabet_data.dart';
+import '../../../core/services/tts_service.dart';
 
 class LetterMatchScreen extends StatefulWidget {
   const LetterMatchScreen({super.key});
@@ -10,130 +14,358 @@ class LetterMatchScreen extends StatefulWidget {
 }
 
 class _LetterMatchScreenState extends State<LetterMatchScreen> {
+  final List<Map<String, String>> alphabetItems = AlphabetData.items;
+  final Random _random = Random();
+
+  int currentIndex = 0;
+  int score = 0;
+
   String? selectedLetter;
   bool? isCorrect;
+  bool isAnswering = false;
 
-  void checkAnswer(String letter) {
+  late List<String> options;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateOptions();
+  }
+
+  String get currentLetter =>
+      alphabetItems[currentIndex]['letter']!;
+
+  String get currentWord =>
+      alphabetItems[currentIndex]['word']!;
+
+  void _generateOptions() {
+    final correctLetter = currentLetter;
+
+    final wrongLetters = alphabetItems
+        .map((item) => item['letter']!)
+        .where((letter) => letter != correctLetter)
+        .toList()
+      ..shuffle(_random);
+
+    options = [
+      correctLetter,
+      ...wrongLetters.take(2),
+    ]..shuffle(_random);
+  }
+
+  Future<void> _checkAnswer(String letter) async {
+    if (isAnswering) return;
+
+    final answerIsCorrect = letter == currentLetter;
+
     setState(() {
       selectedLetter = letter;
-      isCorrect = letter == 'A';
+      isCorrect = answerIsCorrect;
+      isAnswering = true;
+
+      if (answerIsCorrect) {
+        score++;
+      }
     });
+
+    if (answerIsCorrect) {
+      await TtsService.instance.speak(
+        'Correct! $currentLetter for $currentWord',
+      );
+
+      await Future<void>.delayed(
+        const Duration(milliseconds: 600),
+      );
+
+      if (!mounted) return;
+
+      if (currentIndex < alphabetItems.length - 1) {
+        setState(() {
+          currentIndex++;
+          selectedLetter = null;
+          isCorrect = null;
+          isAnswering = false;
+
+          _generateOptions();
+        });
+      } else {
+        _showCompleteDialog();
+      }
+    } else {
+      await TtsService.instance.speak('Try again');
+
+      await Future<void>.delayed(
+        const Duration(milliseconds: 500),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        selectedLetter = null;
+        isCorrect = null;
+        isAnswering = false;
+      });
+    }
   }
 
-  Color buttonColor(String letter) {
+  Color _buttonBackground(String letter) {
     if (selectedLetter != letter) {
-      return AppColors.white;
+      return Colors.white;
     }
 
-    return isCorrect == true ? AppColors.green : AppColors.coral;
+    return isCorrect == true
+        ? AppColors.green
+        : AppColors.coral;
   }
 
-  Color textColor(String letter) {
+  Color _letterColor(String letter) {
     if (selectedLetter == letter) {
-      return AppColors.white;
+      return Colors.white;
     }
 
-    return AppColors.textPrimary;
+    return AppColors.orange;
   }
 
-  Widget letterButton(String letter) {
+  Widget _letterButton(String letter) {
     return SizedBox(
       width: 78,
-      height: 70,
+      height: 66,
       child: ElevatedButton(
-        onPressed: () {
-          checkAnswer(letter);
-        },
+        onPressed: isAnswering
+            ? null
+            : () => _checkAnswer(letter),
         style: ElevatedButton.styleFrom(
-          backgroundColor: buttonColor(letter),
-          foregroundColor: textColor(letter),
-          elevation: 0,
+          backgroundColor: _buttonBackground(letter),
+          disabledBackgroundColor: _buttonBackground(letter),
+          foregroundColor: _letterColor(letter),
+          disabledForegroundColor: _letterColor(letter),
+          elevation: 3,
+          padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(color: AppColors.orange, width: 2),
+            side: const BorderSide(
+              color: AppColors.orange,
+              width: 2,
+            ),
           ),
         ),
         child: Text(
           letter,
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: _letterColor(letter),
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
   }
 
+  void _restartGame() {
+    Navigator.pop(context);
+
+    setState(() {
+      currentIndex = 0;
+      score = 0;
+      selectedLetter = null;
+      isCorrect = null;
+      isAnswering = false;
+
+      _generateOptions();
+    });
+  }
+
+  void _showCompleteDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(26),
+          ),
+          title: const Text(
+            '🎉 Letter Match Complete!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'Your score is $score / ${alphabetItems.length}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(
+              onPressed: _restartGame,
+              child: const Text('Play Again'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                Navigator.pop(context);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.orange,
+              ),
+              child: const Text('Finish'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    TtsService.instance.stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final progress =
+        (currentIndex + 1) / alphabetItems.length;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Letter Match')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Text(
-              'Match the Letter',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+      appBar: AppBar(
+        title: const Text('Letter Match'),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Letter ${currentIndex + 1}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                    ),
+                  ),
+                  Text(
+                    'Score: $score',
+                    style: const TextStyle(
+                      color: AppColors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tap the letter shown below.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 36),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: const Center(
-                child: Text(
-                  'A',
-                  style: TextStyle(
-                    fontSize: 120,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.orange,
+
+              const SizedBox(height: 10),
+
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 9,
+                  backgroundColor:
+                  Colors.white.withValues(alpha: 0.20),
+                  valueColor:
+                  const AlwaysStoppedAnimation(
+                    AppColors.orange,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 36),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                letterButton('A'),
-                letterButton('B'),
-                letterButton('C'),
-              ],
-            ),
-            const SizedBox(height: 24),
-            if (isCorrect == true)
+
+              const SizedBox(height: 30),
+
               const Text(
-                'Great job! You found A! ⭐',
+                'Match the Letter',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.green,
+                  color: Colors.white,
                 ),
               ),
-            if (isCorrect == false)
+
+              const SizedBox(height: 10),
+
               const Text(
-                'Try again!',
+                'Tap the correct letter shown below.',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.coral,
+                  fontSize: 17,
+                  color: Colors.white70,
                 ),
               ),
-          ],
+
+              const SizedBox(height: 30),
+
+              GestureDetector(
+                onTap: () {
+                  TtsService.instance.speak(
+                    '$currentLetter for $currentWord',
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 210,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Center(
+                    child: Text(
+                      currentLetter,
+                      key: ValueKey(currentLetter),
+                      style: const TextStyle(
+                        color: AppColors.orange,
+                        fontSize: 100,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 14,
+                runSpacing: 14,
+                children: options
+                    .map(_letterButton)
+                    .toList(),
+              ),
+
+              const SizedBox(height: 28),
+
+              if (isCorrect == true)
+                const Text(
+                  '🎉 Great Job!',
+                  style: TextStyle(
+                    color: AppColors.green,
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+              if (isCorrect == false)
+                const Text(
+                  'Try Again!',
+                  style: TextStyle(
+                    color: AppColors.coral,
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

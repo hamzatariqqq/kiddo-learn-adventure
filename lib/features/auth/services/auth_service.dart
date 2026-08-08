@@ -10,13 +10,20 @@ class AuthService {
     required String password,
   }) async {
     final credential = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
+      email: email.trim(),
+      password: password.trim(),
     );
 
-    await _firestore.collection('users').doc(credential.user!.uid).update({
-      'lastLogin': FieldValue.serverTimestamp(),
-    });
+    final user = credential.user;
+
+    if (user != null) {
+      await _firestore.collection('users').doc(user.uid).set(
+        {
+          'lastLogin': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
 
     return credential;
   }
@@ -27,17 +34,19 @@ class AuthService {
     required String password,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
+      email: email.trim(),
+      password: password.trim(),
     );
 
     final user = credential.user;
 
     if (user != null) {
+      await user.updateDisplayName(name.trim());
+
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
-        'name': name,
-        'email': email,
+        'name': name.trim(),
+        'email': email.trim(),
 
         // Rewards
         'coins': 0,
@@ -62,6 +71,56 @@ class AuthService {
     }
 
     return credential;
+  }
+
+  Future<void> sendPasswordResetEmail({
+    required String email,
+  }) async {
+    final cleanEmail = email.trim();
+
+    if (cleanEmail.isEmpty) {
+      throw Exception('Please enter your email address.');
+    }
+
+    await _auth.sendPasswordResetEmail(
+      email: cleanEmail,
+    );
+  }
+
+  Future<void> deleteAccount({
+    required String password,
+  }) async {
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      throw Exception('No signed-in user was found.');
+    }
+
+    final email = user.email;
+
+    if (email == null || email.isEmpty) {
+      throw Exception(
+        'This account does not have an email address.',
+      );
+    }
+
+    if (password.trim().isEmpty) {
+      throw Exception('Please enter your password.');
+    }
+
+    // Firebase requires recent authentication before account deletion.
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: password.trim(),
+    );
+
+    await user.reauthenticateWithCredential(credential);
+
+    // Delete the user's Firestore document.
+    await _firestore.collection('users').doc(user.uid).delete();
+
+    // Delete the Firebase Authentication account.
+    await user.delete();
   }
 
   Future<void> logout() async {

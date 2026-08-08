@@ -6,13 +6,15 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/data/alphabet_data.dart';
+import '../../../core/services/tts_service.dart';
 import '../services/lesson_service.dart';
 
 class AlphabetQuizScreen extends StatefulWidget {
   const AlphabetQuizScreen({super.key});
 
   @override
-  State<AlphabetQuizScreen> createState() => _AlphabetQuizScreenState();
+  State<AlphabetQuizScreen> createState() =>
+      _AlphabetQuizScreenState();
 }
 
 class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
@@ -46,12 +48,14 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
 
   @override
   void dispose() {
+    TtsService.instance.stop();
     _confettiController.dispose();
     super.dispose();
   }
 
   void _generateOptions() {
-    final correctLetter = alphabetItems[currentQuestion]['letter']!;
+    final correctLetter =
+    alphabetItems[currentQuestion]['letter']!;
 
     final incorrectLetters = alphabetItems
         .map((item) => item['letter']!)
@@ -65,11 +69,22 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
     ]..shuffle();
   }
 
+  Future<void> _speakQuestion() async {
+    final item = alphabetItems[currentQuestion];
+
+    await TtsService.instance.speak(
+      'Which letter is for ${item['word']}?',
+    );
+  }
+
   Future<void> _handleAnswer(String letter) async {
     if (isAnswering || isSaving) return;
 
-    final correctLetter = alphabetItems[currentQuestion]['letter']!;
-    final bool isCorrect = letter == correctLetter;
+    final currentItem = alphabetItems[currentQuestion];
+    final correctLetter = currentItem['letter']!;
+    final word = currentItem['word']!;
+
+    final isCorrect = letter == correctLetter;
 
     setState(() {
       isAnswering = true;
@@ -81,8 +96,18 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
       }
     });
 
+    if (isCorrect) {
+      await TtsService.instance.speak(
+        'Correct! $correctLetter for $word',
+      );
+    } else {
+      await TtsService.instance.speak(
+        'Try again',
+      );
+    }
+
     await Future<void>.delayed(
-      const Duration(milliseconds: 700),
+      const Duration(milliseconds: 500),
     );
 
     if (!mounted) return;
@@ -119,7 +144,7 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
     });
 
     try {
-      final bool firstCompletion =
+      final firstCompletion =
       await _lessonService.completeLesson(
         lessonId: lessonId,
         starsEarned: score * 5,
@@ -128,6 +153,10 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
       if (!mounted) return;
 
       _confettiController.play();
+
+      await TtsService.instance.speak(
+        'Excellent! You completed the alphabet quiz.',
+      );
 
       await Future<void>.delayed(
         const Duration(milliseconds: 350),
@@ -144,7 +173,7 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Progress could not be saved. Please check your internet.',
+            'Progress could not be saved. Check your internet connection.',
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.coral,
@@ -161,6 +190,8 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
   }
 
   void _restartQuiz() {
+    TtsService.instance.stop();
+
     setState(() {
       currentQuestion = 0;
       score = 0;
@@ -177,35 +208,50 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
   Widget build(BuildContext context) {
     final currentItem = alphabetItems[currentQuestion];
 
-    final String word = currentItem['word']!;
-    final String emoji = currentItem['emoji']!;
+    final word = currentItem['word']!;
+    final emoji = currentItem['emoji']!;
 
-    final double progress =
+    final progress =
         (currentQuestion + 1) / alphabetItems.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Alphabet Quiz'),
+        actions: [
+          IconButton(
+            tooltip: 'Listen',
+            onPressed: _speakQuestion,
+            icon: const Icon(
+              Icons.volume_up_rounded,
+            ),
+          ),
+        ],
       ),
       body: Stack(
         alignment: Alignment.topCenter,
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.large),
+              padding: const EdgeInsets.all(
+                AppSpacing.large,
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
                 children: [
                   _buildQuizHeader(
                     word: word,
                     emoji: emoji,
                     progress: progress,
                   ),
+
                   const SizedBox(height: 24),
+
                   Expanded(
                     child: GridView.builder(
-                      physics: const BouncingScrollPhysics(),
+                      physics:
+                      const BouncingScrollPhysics(),
                       itemCount: currentOptions.length,
                       gridDelegate:
                       const SliverGridDelegateWithFixedCrossAxisCount(
@@ -215,29 +261,38 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                         childAspectRatio: 1,
                       ),
                       itemBuilder: (context, index) {
-                        final letter = currentOptions[index];
+                        final letter =
+                        currentOptions[index];
 
                         return _AlphabetOptionButton(
                           key: ValueKey(
                             '$currentQuestion-$letter',
                           ),
                           letter: letter,
-                          isDisabled: isAnswering || isSaving,
-                          isSelected: selectedAnswer == letter,
-                          isCorrect: selectedAnswer == letter
+                          isDisabled:
+                          isAnswering || isSaving,
+                          isSelected:
+                          selectedAnswer == letter,
+                          isCorrect:
+                          selectedAnswer == letter
                               ? selectedAnswerIsCorrect
                               : null,
-                          onTap: () => _handleAnswer(letter),
+                          onTap: () =>
+                              _handleAnswer(letter),
                         )
                             .animate()
                             .fadeIn(
                           delay: Duration(
-                            milliseconds: index * 80,
+                            milliseconds:
+                            index * 80,
                           ),
                           duration: 350.ms,
                         )
                             .scale(
-                          begin: const Offset(0.85, 0.85),
+                          begin: const Offset(
+                            0.85,
+                            0.85,
+                          ),
                           end: const Offset(1, 1),
                           duration: 400.ms,
                           curve: Curves.easeOutBack,
@@ -245,15 +300,23 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                       },
                     ),
                   ),
+
                   if (isSaving)
                     const Padding(
                       padding: EdgeInsets.only(top: 12),
                       child: Center(
                         child: Column(
                           children: [
-                            CircularProgressIndicator(),
+                            CircularProgressIndicator(
+                              color: AppColors.orange,
+                            ),
                             SizedBox(height: 8),
-                            Text('Saving your progress...'),
+                            Text(
+                              'Saving your progress...',
+                              style: TextStyle(
+                                color: AppColors.white,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -262,8 +325,10 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
               ),
             ),
           ),
+
           ConfettiWidget(
-            confettiController: _confettiController,
+            confettiController:
+            _confettiController,
             blastDirectionality:
             BlastDirectionality.explosive,
             shouldLoop: false,
@@ -273,10 +338,9 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
             maxBlastForce: 20,
             minBlastForce: 8,
             colors: const [
-              AppColors.primaryBlue,
+              AppColors.orange,
               AppColors.green,
               AppColors.yellow,
-              AppColors.orange,
               AppColors.purple,
               AppColors.coral,
             ],
@@ -292,21 +356,23 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
     required double progress,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+      CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(
               child: AnimatedSwitcher(
-                duration: const Duration(
-                  milliseconds: 350,
-                ),
-                transitionBuilder: (child, animation) {
+                duration:
+                const Duration(milliseconds: 350),
+                transitionBuilder:
+                    (child, animation) {
                   return FadeTransition(
                     opacity: animation,
                     child: SlideTransition(
                       position: Tween<Offset>(
-                        begin: const Offset(0.15, 0),
+                        begin:
+                        const Offset(0.15, 0),
                         end: Offset.zero,
                       ).animate(animation),
                       child: child,
@@ -316,38 +382,51 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                 child: Text(
                   'Which letter is for $word $emoji?',
                   key: ValueKey(currentQuestion),
-                  style: AppTextStyles.headingMedium,
+                  style:
+                  AppTextStyles.headingMedium.copyWith(
+                    color: AppColors.white,
+                  ),
                 ),
               ),
             ),
+
             const SizedBox(width: 12),
+
             _ScoreBadge(score: score),
           ],
         ),
+
         const SizedBox(height: 10),
+
         Text(
-          'Question ${currentQuestion + 1} '
-              'of ${alphabetItems.length}',
-          style: AppTextStyles.bodySmall,
+          'Question ${currentQuestion + 1} of '
+              '${alphabetItems.length}',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
+
         const SizedBox(height: 12),
+
         TweenAnimationBuilder<double>(
           tween: Tween<double>(
             begin: 0,
             end: progress,
           ),
-          duration: const Duration(
-            milliseconds: 450,
-          ),
+          duration:
+          const Duration(milliseconds: 450),
           curve: Curves.easeOut,
           builder: (context, value, child) {
             return LinearProgressIndicator(
               value: value,
               minHeight: 10,
-              borderRadius: BorderRadius.circular(20),
-              backgroundColor: Colors.grey.shade300,
-              valueColor: const AlwaysStoppedAnimation(
-                AppColors.primaryBlue,
+              borderRadius:
+              BorderRadius.circular(20),
+              backgroundColor:
+              Colors.white.withValues(alpha: 0.20),
+              valueColor:
+              const AlwaysStoppedAnimation(
+                AppColors.orange,
               ),
             );
           },
@@ -370,8 +449,10 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return Dialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius:
+            BorderRadius.circular(28),
           ),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -384,28 +465,46 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                 )
                     .animate(
                   onPlay: (controller) {
-                    controller.repeat(reverse: true);
+                    controller.repeat(
+                      reverse: true,
+                    );
                   },
                 )
                     .scale(
-                  begin: const Offset(0.9, 0.9),
-                  end: const Offset(1.08, 1.08),
+                  begin:
+                  const Offset(0.9, 0.9),
+                  end:
+                  const Offset(1.08, 1.08),
                   duration: 700.ms,
                 ),
+
                 const SizedBox(height: 12),
-                Text(
+
+                const Text(
                   'Alphabet Quiz Complete!',
-                  style: AppTextStyles.headingMedium,
                   textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+
                 const SizedBox(height: 12),
+
                 Text(
-                  'You scored $score out of '
-                      '${alphabetItems.length}.',
-                  style: AppTextStyles.title,
+                  'Your score is $score / '
+                      '${alphabetItems.length}',
                   textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.orange,
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                const SizedBox(height: 8),
+
+                const SizedBox(height: 10),
+
                 Text(
                   firstCompletion
                       ? 'You earned ${score * 5} stars, '
@@ -413,10 +512,16 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                       'Numbers are now unlocked! 🔓'
                       : 'You already completed this lesson.\n'
                       'No duplicate reward was added.',
-                  style: AppTextStyles.bodySmall,
                   textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
                 ),
+
                 const SizedBox(height: 24),
+
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -424,6 +529,12 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                       Navigator.pop(dialogContext);
                       Navigator.pop(context);
                     },
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                      AppColors.orange,
+                      foregroundColor:
+                      Colors.white,
+                    ),
                     icon: const Icon(
                       Icons.home_rounded,
                     ),
@@ -432,7 +543,9 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 8),
+
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -440,10 +553,19 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                       Navigator.pop(dialogContext);
                       _restartQuiz();
                     },
+                    style:
+                    OutlinedButton.styleFrom(
+                      foregroundColor:
+                      AppColors.orange,
+                      side: const BorderSide(
+                        color: AppColors.orange,
+                      ),
+                    ),
                     icon: const Icon(
                       Icons.replay_rounded,
                     ),
-                    label: const Text('Play Again'),
+                    label:
+                    const Text('Play Again'),
                   ),
                 ),
               ],
@@ -453,7 +575,8 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
             .animate()
             .fadeIn(duration: 300.ms)
             .scale(
-          begin: const Offset(0.75, 0.75),
+          begin:
+          const Offset(0.75, 0.75),
           end: const Offset(1, 1),
           duration: 500.ms,
           curve: Curves.easeOutBack,
@@ -473,7 +596,8 @@ class _ScoreBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration:
+      const Duration(milliseconds: 300),
       transitionBuilder: (child, animation) {
         return ScaleTransition(
           scale: animation,
@@ -488,7 +612,8 @@ class _ScoreBadge extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColors.yellow,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius:
+          BorderRadius.circular(20),
         ),
         child: Text(
           '⭐ $score',
@@ -529,54 +654,60 @@ class _AlphabetOptionButtonState
   @override
   Widget build(BuildContext context) {
     Color borderColor =
-    AppColors.primaryBlue.withValues(alpha: 0.25);
+    AppColors.orange.withValues(alpha: 0.75);
 
-    Color backgroundColor =
-    AppColors.primaryBlue.withValues(alpha: 0.12);
+    Color backgroundColor = Colors.white;
+
+    Color letterColor = AppColors.orange;
 
     double borderWidth = 2;
 
     if (widget.isSelected &&
         widget.isCorrect == true) {
       borderColor = AppColors.green;
-      backgroundColor =
-          AppColors.green.withValues(alpha: 0.16);
-      borderWidth = 6;
+      backgroundColor = AppColors.green;
+      letterColor = Colors.white;
+      borderWidth = 5;
     } else if (widget.isSelected &&
         widget.isCorrect == false) {
       borderColor = AppColors.coral;
-      backgroundColor =
-          AppColors.coral.withValues(alpha: 0.16);
-      borderWidth = 6;
+      backgroundColor = AppColors.coral;
+      letterColor = Colors.white;
+      borderWidth = 5;
     }
 
     return AnimatedScale(
       scale: isPressed ? 0.92 : 1,
-      duration: const Duration(milliseconds: 120),
+      duration:
+      const Duration(milliseconds: 120),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration:
+        const Duration(milliseconds: 250),
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius:
+          BorderRadius.circular(24),
           border: Border.all(
             color: borderColor,
             width: borderWidth,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue
-                  .withValues(alpha: 0.12),
+              color: AppColors.orange
+                  .withValues(alpha: 0.15),
               blurRadius:
-              widget.isSelected ? 4 : 12,
+              widget.isSelected ? 5 : 14,
               offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius:
+          BorderRadius.circular(24),
           child: InkWell(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius:
+            BorderRadius.circular(24),
             onTap: widget.isDisabled
                 ? null
                 : widget.onTap,
@@ -606,22 +737,22 @@ class _AlphabetOptionButtonState
                   widget.letter,
                   style:
                   AppTextStyles.headingLarge.copyWith(
-                    color: AppColors.primaryBlue,
-                    fontSize: 52,
+                    color: letterColor,
+                    fontSize: 58,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 if (widget.isSelected)
                   Positioned(
                     top: 12,
                     right: 12,
                     child: Icon(
                       widget.isCorrect == true
-                          ? Icons.check_circle_rounded
+                          ? Icons
+                          .check_circle_rounded
                           : Icons.cancel_rounded,
-                      color: widget.isCorrect == true
-                          ? AppColors.green
-                          : AppColors.coral,
+                      color: Colors.white,
                       size: 34,
                     ),
                   ),

@@ -23,6 +23,25 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:424332400754:android:e2b9dfb8759e0c7cf7caeb",
+        "android_client_info": {
+          "package_name": "com.zynax.kiddo_learn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpgTxNbwF-F1DFy7EqSqWoZA8Sc6Q1rIU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

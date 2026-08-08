@@ -2,7 +2,7 @@ name: kiddo_learn
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.12.1
@@ -19,6 +19,9 @@ dependencies:
   cloud_firestore: ^6.0.1
   flutter_animate: ^4.5.2
   confetti: ^0.8.0
+  flutter_tts: ^4.2.5
+  google_mobile_ads: ^9.0.0
+  in_app_purchase: ^3.3.0
 
 dev_dependencies:
   flutter_test:
@@ -34,8 +37,7 @@ flutter:
     - assets/images/
 
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: false
   image_path: "assets/images/app_icon.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  min_sdk_android: 21

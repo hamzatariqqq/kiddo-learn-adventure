@@ -9,10 +9,14 @@ Future<void> main() async {
 
   try {
     await Firebase.initializeApp();
-    debugPrint('Firebase initialized successfully ✅');
+    debugPrint('Firebase initialized successfully');
   } catch (e) {
-    debugPrint('Firebase initialization error ❌: $e');
+    debugPrint('Firebase initialization error: $e');
   }
 
-  runApp(const ProviderScope(child: KiddoLearnApp()));
+  runApp(
+    const ProviderScope(
+      child: KiddoLearnApp(),
+    ),
+  );
 }
