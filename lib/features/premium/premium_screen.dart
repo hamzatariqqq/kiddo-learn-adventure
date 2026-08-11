@@ -15,6 +15,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   bool _loading = true;
   bool _buying = false;
+  bool _restoring = false;
+  bool _isPremium = false;
 
   @override
   void initState() {
@@ -28,80 +30,95 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Future<void> _initializeBilling() async {
-    await _purchaseService.initialize();
+    try {
+      await _purchaseService.initialize();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _loading = false;
-    });
+      setState(() {
+        _isPremium = _purchaseService.isPremium;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+      });
+
+      _showMessage(
+        'Unable to initialize purchases right now.',
+      );
+    }
   }
 
-  void _onPurchaseUpdated(PurchaseDetails purchase) {
+  void _onPurchaseUpdated(
+      PurchaseDetails purchase,
+      ) {
     if (!mounted) return;
 
     if (purchase.status == PurchaseStatus.purchased) {
       setState(() {
         _buying = false;
+        _restoring = false;
+        _isPremium = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Premium activated successfully! 🎉'),
-        ),
+      _showMessage(
+        'Premium activated successfully! 🎉',
       );
+      return;
     }
 
     if (purchase.status == PurchaseStatus.restored) {
       setState(() {
         _buying = false;
+        _restoring = false;
+        _isPremium = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Premium purchase restored successfully.'),
-        ),
+      _showMessage(
+        'Premium purchase restored successfully.',
       );
+      return;
     }
 
     if (purchase.status == PurchaseStatus.error) {
       setState(() {
         _buying = false;
+        _restoring = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            purchase.error?.message ?? 'Purchase failed. Please try again.',
-          ),
-        ),
+      _showMessage(
+        purchase.error?.message ??
+            'Purchase failed. Please try again.',
       );
+      return;
     }
 
     if (purchase.status == PurchaseStatus.canceled) {
       setState(() {
         _buying = false;
+        _restoring = false;
       });
     }
   }
 
   Future<void> _buyPremium() async {
+    if (_isPremium || _buying) {
+      return;
+    }
+
     if (!_purchaseService.storeAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Play Billing is not available.'),
-        ),
+      _showMessage(
+        'Google Play Billing is not available.',
       );
       return;
     }
 
     if (_purchaseService.premiumProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Premium product is not available yet. Please try again later.',
-          ),
-        ),
+      _showMessage(
+        'Premium product is not available yet. Please try again later.',
       );
       return;
     }
@@ -110,26 +127,79 @@ class _PremiumScreenState extends State<PremiumScreen> {
       _buying = true;
     });
 
-    final bool started = await _purchaseService.buyPremium();
+    try {
+      final started =
+      await _purchaseService.buyPremium();
 
-    if (!started && mounted) {
+      if (!started && mounted) {
+        setState(() {
+          _buying = false;
+        });
+
+        _showMessage(
+          'Unable to start the purchase.',
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         _buying = false;
       });
+
+      _showMessage(
+        'Unable to start the purchase. Please try again.',
+      );
     }
   }
 
   Future<void> _restorePurchase() async {
+    if (_restoring) return;
+
     if (!_purchaseService.storeAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Play Billing is not available.'),
-        ),
+      _showMessage(
+        'Google Play Billing is not available.',
       );
       return;
     }
 
-    await _purchaseService.restorePurchases();
+    setState(() {
+      _restoring = true;
+    });
+
+    try {
+      await _purchaseService.restorePurchases();
+
+      if (!mounted) return;
+
+      // Google Play sends restored purchases through
+      // the purchase stream. We do not mark Premium here
+      // unless an actual restored purchase is received.
+      setState(() {
+        _restoring = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _restoring = false;
+      });
+
+      _showMessage(
+        'Unable to restore purchases. Please try again.',
+      );
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -140,9 +210,11 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ProductDetails? product = _purchaseService.premiumProduct;
+    final ProductDetails? product =
+        _purchaseService.premiumProduct;
 
-    final String price = product?.price ?? 'Loading price...';
+    final String price =
+        product?.price ?? 'Loading price...';
 
     return Scaffold(
       backgroundColor: const Color(0xFF062B50),
@@ -160,12 +232,54 @@ class _PremiumScreenState extends State<PremiumScreen> {
       body: SafeArea(
         child: _loading
             ? const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: Color(0xFFFFD83D),
+          ),
         )
             : SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              if (_isPremium) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD83D),
+                    borderRadius:
+                    BorderRadius.circular(18),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 48,
+                        color: Color(0xFF062B50),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Premium Active',
+                        style: TextStyle(
+                          color: Color(0xFF062B50),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Your Kiddo Premium lifetime access is active.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF062B50),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               const _PremiumFeatureCard(
                 icon: Icons.block,
                 iconColor: Colors.redAccent,
@@ -211,7 +325,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius:
+                  BorderRadius.circular(18),
                 ),
                 child: Column(
                   children: [
@@ -223,34 +338,55 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
-                    const Text(
-                      'One-time purchase',
-                      style: TextStyle(
+                    Text(
+                      _isPremium
+                          ? 'Already purchased'
+                          : 'One-time purchase',
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 13,
                       ),
                     ),
-
                     const SizedBox(height: 14),
-
-                    Text(
+                    _isPremium
+                        ? const Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.verified_rounded,
+                          color: Colors.green,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'ACTIVE',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 22,
+                            fontWeight:
+                            FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                        : Text(
                       price,
                       style: const TextStyle(
-                        color: Color(0xFF062B50),
+                        color:
+                        Color(0xFF062B50),
                         fontSize: 26,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                        FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
-                    const Text(
-                      'Secure payment through Google Play',
+                    Text(
+                      _isPremium
+                          ? 'Premium is enabled for this account.'
+                          : 'Secure payment through Google Play',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 12,
                       ),
@@ -265,27 +401,41 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _buying ? null : _buyPremium,
+                  onPressed:
+                  (_isPremium || _buying)
+                      ? null
+                      : _buyPremium,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD83D),
-                    foregroundColor: const Color(0xFF062B50),
+                    backgroundColor:
+                    const Color(0xFFFFD83D),
+                    foregroundColor:
+                    const Color(0xFF062B50),
+                    disabledBackgroundColor:
+                    Colors.green.shade400,
+                    disabledForegroundColor:
+                    Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius:
+                      BorderRadius.circular(14),
                     ),
                   ),
                   child: _buying
                       ? const SizedBox(
                     height: 22,
                     width: 22,
-                    child: CircularProgressIndicator(
+                    child:
+                    CircularProgressIndicator(
                       strokeWidth: 2,
                     ),
                   )
-                      : const Text(
-                    '👑 Unlock Premium',
-                    style: TextStyle(
+                      : Text(
+                    _isPremium
+                        ? '✓ Premium Active'
+                        : '👑 Unlock Premium',
+                    style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
                 ),
@@ -293,24 +443,44 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
               const SizedBox(height: 12),
 
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: _restorePurchase,
-                  icon: const Icon(Icons.restore),
-                  label: const Text('Restore Purchase'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(
-                      color: Colors.white54,
+              if (!_isPremium)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _restoring
+                        ? null
+                        : _restorePurchase,
+                    icon: _restoring
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child:
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                        : const Icon(Icons.restore),
+                    label: Text(
+                      _restoring
+                          ? 'Restoring...'
+                          : 'Restore Purchase',
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    style:
+                    OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(
+                        color: Colors.white54,
+                      ),
+                      shape:
+                      RoundedRectangleBorder(
+                        borderRadius:
+                        BorderRadius.circular(14),
+                      ),
                     ),
                   ),
                 ),
-              ),
 
               const SizedBox(height: 16),
 
@@ -358,20 +528,21 @@ class _PremiumFeatureCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color:
+              iconColor.withValues(alpha: 0.12),
+              borderRadius:
+              BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
               color: iconColor,
             ),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
@@ -381,9 +552,7 @@ class _PremiumFeatureCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   subtitle,
                   style: const TextStyle(

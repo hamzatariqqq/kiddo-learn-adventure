@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../features/auth/providers/user_provider.dart';
 import '../services/ad_service.dart';
 
-class RewardedAdButton extends StatefulWidget {
+class RewardedAdButton extends ConsumerStatefulWidget {
   const RewardedAdButton({
     super.key,
     this.rewardCoins = 100,
@@ -14,10 +16,12 @@ class RewardedAdButton extends StatefulWidget {
   final int rewardCoins;
 
   @override
-  State<RewardedAdButton> createState() => _RewardedAdButtonState();
+  ConsumerState<RewardedAdButton> createState() =>
+      _RewardedAdButtonState();
 }
 
-class _RewardedAdButtonState extends State<RewardedAdButton> {
+class _RewardedAdButtonState
+    extends ConsumerState<RewardedAdButton> {
   bool _isGivingReward = false;
 
   @override
@@ -48,7 +52,9 @@ class _RewardedAdButtonState extends State<RewardedAdButton> {
           .collection('users')
           .doc(user.uid)
           .update({
-        'coins': FieldValue.increment(widget.rewardCoins),
+        'coins': FieldValue.increment(
+          widget.rewardCoins,
+        ),
       });
 
       if (!mounted) return;
@@ -89,7 +95,10 @@ class _RewardedAdButtonState extends State<RewardedAdButton> {
     );
   }
 
-  void _showMessage(String message, Color color) {
+  void _showMessage(
+      String message,
+      Color color,
+      ) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -101,37 +110,59 @@ class _RewardedAdButtonState extends State<RewardedAdButton> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _isGivingReward ? null : _showAd,
-        icon: _isGivingReward
-            ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: Colors.white,
+    final userAsync = ref.watch(currentUserProvider);
+
+    return userAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (error, stackTrace) =>
+      const SizedBox.shrink(),
+      data: (user) {
+        final isPremium = user?.isPremium ?? false;
+
+        if (isPremium) {
+          return const SizedBox.shrink();
+        }
+
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed:
+            _isGivingReward ? null : _showAd,
+            icon: _isGivingReward
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child:
+              CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            )
+                : const Icon(
+              Icons.ondemand_video_rounded,
+            ),
+            label: Text(
+              _isGivingReward
+                  ? 'Adding Coins...'
+                  : 'Watch Ad & Earn ${widget.rewardCoins} Coins',
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+              AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              padding:
+              const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 15,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                BorderRadius.circular(18),
+              ),
+            ),
           ),
-        )
-            : const Icon(Icons.ondemand_video_rounded),
-        label: Text(
-          _isGivingReward
-              ? 'Adding Coins...'
-              : 'Watch Ad & Earn ${widget.rewardCoins} Coins',
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryBlue,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 15,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

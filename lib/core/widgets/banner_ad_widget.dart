@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../features/auth/providers/user_provider.dart';
 import '../services/ad_service.dart';
 
-class BannerAdWidget extends StatefulWidget {
+class BannerAdWidget extends ConsumerStatefulWidget {
   const BannerAdWidget({super.key});
 
   @override
-  State<BannerAdWidget> createState() => _BannerAdWidgetState();
+  ConsumerState<BannerAdWidget> createState() =>
+      _BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class _BannerAdWidgetState
+    extends ConsumerState<BannerAdWidget> {
   BannerAd? _bannerAd;
 
   bool _isLoaded = false;
@@ -55,40 +59,60 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final banner = _bannerAd;
+    final userAsync = ref.watch(currentUserProvider);
 
-    if (_hasFailed || banner == null) {
-      return const SizedBox.shrink();
-    }
+    return userAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (error, stackTrace) =>
+      const SizedBox.shrink(),
+      data: (user) {
+        final isPremium = user?.isPremium ?? false;
 
-    if (!_isLoaded) {
-      return const SizedBox(
-        height: 50,
-        child: Center(
+        if (isPremium) {
+          _bannerAd?.dispose();
+          _bannerAd = null;
+
+          return const SizedBox.shrink();
+        }
+
+        final banner = _bannerAd;
+
+        if (_hasFailed || banner == null) {
+          return const SizedBox.shrink();
+        }
+
+        if (!_isLoaded) {
+          return const SizedBox(
+            height: 50,
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          top: false,
           child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
+            width: double.infinity,
+            height: banner.size.height.toDouble(),
+            child: Center(
+              child: SizedBox(
+                width: banner.size.width.toDouble(),
+                height: banner.size.height.toDouble(),
+                child: AdWidget(
+                  ad: banner,
+                ),
+              ),
             ),
           ),
-        ),
-      );
-    }
-
-    return SafeArea(
-      top: false,
-      child: SizedBox(
-        width: double.infinity,
-        height: banner.size.height.toDouble(),
-        child: Center(
-          child: SizedBox(
-            width: banner.size.width.toDouble(),
-            height: banner.size.height.toDouble(),
-            child: AdWidget(ad: banner),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

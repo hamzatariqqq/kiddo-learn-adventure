@@ -64,6 +64,10 @@ class AuthService {
         // Achievements
         'badges': <String>[],
 
+        // Premium
+        'isPremium': false,
+        'premiumActivatedAt': null,
+
         // Dates
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
@@ -79,7 +83,9 @@ class AuthService {
     final cleanEmail = email.trim();
 
     if (cleanEmail.isEmpty) {
-      throw Exception('Please enter your email address.');
+      throw Exception(
+        'Please enter your email address.',
+      );
     }
 
     await _auth.sendPasswordResetEmail(
@@ -93,7 +99,9 @@ class AuthService {
     final user = _auth.currentUser;
 
     if (user == null) {
-      throw Exception('No signed-in user was found.');
+      throw Exception(
+        'No signed-in user was found.',
+      );
     }
 
     final email = user.email;
@@ -105,21 +113,29 @@ class AuthService {
     }
 
     if (password.trim().isEmpty) {
-      throw Exception('Please enter your password.');
+      throw Exception(
+        'Please enter your password.',
+      );
     }
 
-    // Firebase requires recent authentication before account deletion.
+    // Firebase requires recent authentication
+    // before deleting an account.
     final credential = EmailAuthProvider.credential(
       email: email,
       password: password.trim(),
     );
 
-    await user.reauthenticateWithCredential(credential);
+    await user.reauthenticateWithCredential(
+      credential,
+    );
 
-    // Delete the user's Firestore document.
-    await _firestore.collection('users').doc(user.uid).delete();
+    // Delete the users Firestore document.
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .delete();
 
-    // Delete the Firebase Authentication account.
+    // Delete Firebase Authentication account.
     await user.delete();
   }
 

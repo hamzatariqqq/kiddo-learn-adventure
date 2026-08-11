@@ -14,9 +14,11 @@ class UserModel {
     required this.rewardStreak,
     required this.completedLessonIds,
     required this.badges,
+    required this.isPremium,
     this.createdAt,
     this.lastLogin,
     this.lastRewardClaim,
+    this.premiumActivatedAt,
   });
 
   final String uid;
@@ -35,9 +37,12 @@ class UserModel {
   final List<String> completedLessonIds;
   final List<String> badges;
 
+  final bool isPremium;
+
   final Timestamp? createdAt;
   final Timestamp? lastLogin;
   final Timestamp? lastRewardClaim;
+  final Timestamp? premiumActivatedAt;
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
@@ -54,10 +59,15 @@ class UserModel {
       completedLessonIds: List<String>.from(
         map['completedLessonIds'] ?? <String>[],
       ),
-      badges: List<String>.from(map['badges'] ?? <String>[]),
+      badges: List<String>.from(
+        map['badges'] ?? <String>[],
+      ),
+      isPremium: map['isPremium'] ?? false,
       createdAt: map['createdAt'] as Timestamp?,
       lastLogin: map['lastLogin'] as Timestamp?,
       lastRewardClaim: map['lastRewardClaim'] as Timestamp?,
+      premiumActivatedAt:
+      map['premiumActivatedAt'] as Timestamp?,
     );
   }
 
@@ -75,9 +85,11 @@ class UserModel {
       'rewardStreak': rewardStreak,
       'completedLessonIds': completedLessonIds,
       'badges': badges,
+      'isPremium': isPremium,
       'createdAt': createdAt,
       'lastLogin': lastLogin,
       'lastRewardClaim': lastRewardClaim,
+      'premiumActivatedAt': premiumActivatedAt,
     };
   }
 }
