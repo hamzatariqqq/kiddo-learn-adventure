@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -16,24 +17,79 @@ class AlphabetLearningScreen extends StatefulWidget {
       _AlphabetLearningScreenState();
 }
 
-class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
+class _AlphabetLearningScreenState
+    extends State<AlphabetLearningScreen> {
   final alphabetItems = AlphabetData.items;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   int currentIndex = 0;
   bool isSpeaking = false;
+
+  static const Map<String, String> _audioFiles = {
+    'A': 'a_apple.mp3',
+    'B': 'b_ball.mp3',
+    'C': 'c_cat.mp3',
+    'D': 'd_dog.mp3',
+    'E': 'e_elephant.mp3',
+    'F': 'f_fish.mp3',
+    'G': 'g_grapes.mp3',
+    'H': 'h_hat.mp3',
+    'I': 'i_ice_cream.mp3',
+    'J': 'j_juice.mp3',
+    'K': 'k_kite.mp3',
+    'L': 'l_lion.mp3',
+    'M': 'm_mango.mp3',
+    'N': 'n_nest.mp3',
+    'O': 'o_orange.mp3',
+    'P': 'p_pineapple.mp3',
+    'Q': 'q_queen.mp3',
+    'R': 'r_rabbit.mp3',
+    'S': 's_strawberry.mp3',
+    'T': 't_tiger.mp3',
+    'U': 'u_umbrella.mp3',
+    'V': 'v_violin.mp3',
+    'W': 'w_watch.mp3',
+    'X': 'x_xylophone.mp3',
+    'Y': 'y_yak.mp3',
+    'Z': 'z_zebra.mp3',
+  };
 
   Future<void> _speakCurrentItem() async {
     if (isSpeaking) return;
 
     final item = alphabetItems[currentIndex];
+    final letter = item['letter']!;
+    final fileName = _audioFiles[letter];
 
     setState(() {
       isSpeaking = true;
     });
 
-    await TtsService.instance.speak(
-      '${item['letter']} for ${item['word']}',
-    );
+    try {
+      await TtsService.instance.stop();
+      await _audioPlayer.stop();
+
+      if (fileName == null) {
+        throw Exception('No audio file found for $letter');
+      }
+
+      await _audioPlayer.play(
+        AssetSource(
+          'audio/alphabet/$fileName',
+        ),
+      );
+
+      await _audioPlayer.onPlayerComplete.first;
+    } catch (error) {
+      debugPrint(
+        'Alphabet natural audio error: $error',
+      );
+
+      // Fallback if an MP3 is missing/broken.
+      await TtsService.instance.speak(
+        '${item['letter']} for ${item['word']}',
+      );
+    }
 
     if (!mounted) return;
 
@@ -46,6 +102,7 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
     if (currentIndex == 0) return;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     setState(() {
       currentIndex--;
@@ -54,14 +111,17 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
   }
 
   void _goToNext() {
-    final isLast = currentIndex == alphabetItems.length - 1;
+    final isLast =
+        currentIndex == alphabetItems.length - 1;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     if (isLast) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const AlphabetQuizScreen(),
+          builder: (_) =>
+          const AlphabetQuizScreen(),
         ),
       );
       return;
@@ -76,14 +136,19 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
   @override
   void dispose() {
     TtsService.instance.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final item = alphabetItems[currentIndex];
-    final isLast = currentIndex == alphabetItems.length - 1;
-    final progress = (currentIndex + 1) / alphabetItems.length;
+
+    final isLast =
+        currentIndex == alphabetItems.length - 1;
+
+    final progress =
+        (currentIndex + 1) / alphabetItems.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -92,11 +157,13 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
+          padding:
+          const EdgeInsets.all(AppSpacing.large),
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Letter ${currentIndex + 1}',
@@ -112,12 +179,16 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
               const SizedBox(height: 10),
 
               ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius:
+                BorderRadius.circular(20),
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 10,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
+                  backgroundColor:
+                  Colors.grey.shade300,
+                  valueColor:
+                  const AlwaysStoppedAnimation<
+                      Color>(
                     AppColors.primaryBlue,
                   ),
                 ),
@@ -130,34 +201,48 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
                   onTap: _speakCurrentItem,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(24),
+                    padding:
+                    const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius:
+                      BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
+                          color: Colors.black
+                              .withValues(
+                            alpha: 0.08,
+                          ),
                           blurRadius: 18,
-                          offset: const Offset(0, 8),
+                          offset:
+                          const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment:
+                      MainAxisAlignment.center,
                       children: [
                         Text(
                           item['emoji']!,
-                          key: ValueKey('${item['letter']}-emoji'),
-                          style: const TextStyle(fontSize: 90),
+                          key: ValueKey(
+                            '${item['letter']}-emoji',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 90,
+                          ),
                         )
                             .animate(
                           key: ValueKey(
                             '${item['letter']}-emoji-animation',
                           ),
                         )
-                            .fade(duration: 300.ms)
+                            .fade(
+                          duration: 300.ms,
+                        )
                             .scale(
-                          begin: const Offset(0.7, 0.7),
+                          begin:
+                          const Offset(0.7, 0.7),
                           duration: 500.ms,
                           curve: Curves.elasticOut,
                         ),
@@ -166,11 +251,17 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
 
                         Text(
                           item['letter']!,
-                          key: ValueKey('${item['letter']}-letter'),
-                          style: AppTextStyles.headingLarge.copyWith(
+                          key: ValueKey(
+                            '${item['letter']}-letter',
+                          ),
+                          style: AppTextStyles
+                              .headingLarge
+                              .copyWith(
                             fontSize: 80,
-                            color: AppColors.primaryBlue,
-                            fontWeight: FontWeight.bold,
+                            color:
+                            AppColors.primaryBlue,
+                            fontWeight:
+                            FontWeight.bold,
                           ),
                         )
                             .animate(
@@ -178,16 +269,23 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
                             '${item['letter']}-letter-animation',
                           ),
                         )
-                            .fade(duration: 300.ms)
+                            .fade(
+                          duration: 300.ms,
+                        )
                             .slideY(begin: 0.2),
 
                         const SizedBox(height: 12),
 
                         Text(
                           '${item['letter']} for ${item['word']}',
-                          key: ValueKey('${item['letter']}-word'),
-                          style: AppTextStyles.headingMedium.copyWith(
-                            color: AppColors.textPrimary,
+                          key: ValueKey(
+                            '${item['letter']}-word',
+                          ),
+                          style: AppTextStyles
+                              .headingMedium
+                              .copyWith(
+                            color:
+                            AppColors.textPrimary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -200,34 +298,27 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
                               : _speakCurrentItem,
                           icon: Icon(
                             isSpeaking
-                                ? Icons.graphic_eq_rounded
-                                : Icons.volume_up_rounded,
+                                ? Icons
+                                .graphic_eq_rounded
+                                : Icons
+                                .volume_up_rounded,
                           ),
                           label: Text(
                             isSpeaking
                                 ? 'Speaking...'
                                 : 'Listen',
                           ),
-                        )
-                            .animate(
-                          onPlay: (controller) {
-                            if (isSpeaking) {
-                              controller.repeat(reverse: true);
-                            }
-                          },
-                        )
-                            .scale(
-                          begin: const Offset(0.96, 0.96),
-                          end: const Offset(1.04, 1.04),
-                          duration: 600.ms,
                         ),
 
                         const SizedBox(height: 10),
 
                         Text(
                           'Tap the card or the button to hear the sound.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                          style: AppTextStyles
+                              .bodySmall
+                              .copyWith(
+                            color: AppColors
+                                .textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -244,9 +335,14 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed:
-                      currentIndex == 0 ? null : _goToPrevious,
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      label: const Text('Previous'),
+                      currentIndex == 0
+                          ? null
+                          : _goToPrevious,
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                      ),
+                      label:
+                      const Text('Previous'),
                     ),
                   ),
 
@@ -258,10 +354,13 @@ class _AlphabetLearningScreenState extends State<AlphabetLearningScreen> {
                       icon: Icon(
                         isLast
                             ? Icons.quiz_rounded
-                            : Icons.arrow_forward_rounded,
+                            : Icons
+                            .arrow_forward_rounded,
                       ),
                       label: Text(
-                        isLast ? 'Start Quiz' : 'Next',
+                        isLast
+                            ? 'Start Quiz'
+                            : 'Next',
                       ),
                     ),
                   ),

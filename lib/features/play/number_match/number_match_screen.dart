@@ -1,9 +1,9 @@
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../../core/services/tts_service.dart';
 
 class NumberMatchScreen extends StatefulWidget {
   const NumberMatchScreen({super.key});
@@ -14,6 +14,7 @@ class NumberMatchScreen extends StatefulWidget {
 
 class _NumberMatchScreenState extends State<NumberMatchScreen> {
   final Random _random = Random();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   final List<int> numbers = List.generate(10, (index) => index + 1);
 
@@ -32,6 +33,10 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
   void initState() {
     super.initState();
     _generateOptions();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _playMatchSound('match_start.mp3');
+    });
   }
 
   void _generateOptions() {
@@ -44,6 +49,18 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
       currentNumber,
       ...wrongNumbers.take(3),
     ]..shuffle(_random);
+  }
+
+  Future<void> _playMatchSound(String fileName) async {
+    try {
+      await _audioPlayer.stop();
+
+      await _audioPlayer.play(
+        AssetSource('audio/match/$fileName'),
+      );
+    } catch (e) {
+      debugPrint('Number Match audio error: $e');
+    }
   }
 
   Future<void> _checkAnswer(int number) async {
@@ -62,12 +79,10 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
     });
 
     if (answerIsCorrect) {
-      await TtsService.instance.speak(
-        'Correct! There are $currentNumber dots',
-      );
+      await _playMatchSound('match_correct.mp3');
 
       await Future<void>.delayed(
-        const Duration(milliseconds: 600),
+        const Duration(milliseconds: 900),
       );
 
       if (!mounted) return;
@@ -78,16 +93,25 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
           selectedNumber = null;
           isCorrect = null;
           isAnswering = false;
+
           _generateOptions();
         });
       } else {
+        await _playMatchSound('match_complete.mp3');
+
+        await Future<void>.delayed(
+          const Duration(milliseconds: 900),
+        );
+
+        if (!mounted) return;
+
         _showCompleteDialog();
       }
     } else {
-      await TtsService.instance.speak('Try again');
+      await _playMatchSound('match_wrong.mp3');
 
       await Future<void>.delayed(
-        const Duration(milliseconds: 500),
+        const Duration(milliseconds: 900),
       );
 
       if (!mounted) return;
@@ -123,9 +147,8 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
       width: 70,
       height: 70,
       child: ElevatedButton(
-        onPressed: isAnswering
-            ? null
-            : () => _checkAnswer(number),
+        onPressed:
+        isAnswering ? null : () => _checkAnswer(number),
         style: ElevatedButton.styleFrom(
           backgroundColor: _buttonBackground(number),
           disabledBackgroundColor: _buttonBackground(number),
@@ -162,8 +185,11 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
       selectedNumber = null;
       isCorrect = null;
       isAnswering = false;
+
       _generateOptions();
     });
+
+    _playMatchSound('match_start.mp3');
   }
 
   void _showCompleteDialog() {
@@ -217,7 +243,8 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
 
   @override
   void dispose() {
-    TtsService.instance.stop();
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -263,7 +290,8 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
                   minHeight: 9,
                   backgroundColor:
                   Colors.white.withValues(alpha: 0.20),
-                  valueColor: const AlwaysStoppedAnimation(
+                  valueColor:
+                  const AlwaysStoppedAnimation<Color>(
                     AppColors.orange,
                   ),
                 ),
@@ -293,27 +321,28 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
 
               const SizedBox(height: 30),
 
-              GestureDetector(
-                onTap: () {
-                  TtsService.instance.speak(
-                    'There are $currentNumber dots',
-                  );
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: List.generate(
-                      currentNumber,
-                          (_) => const _Dot(),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                      Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
                     ),
+                  ],
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: List.generate(
+                    currentNumber,
+                        (_) => const _Dot(),
                   ),
                 ),
               ),
@@ -324,9 +353,8 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
                 alignment: WrapAlignment.center,
                 spacing: 12,
                 runSpacing: 12,
-                children: options
-                    .map(_numberButton)
-                    .toList(),
+                children:
+                options.map(_numberButton).toList(),
               ),
 
               const SizedBox(height: 28),

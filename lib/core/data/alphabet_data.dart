@@ -1,7 +1,11 @@
 class AlphabetData {
   static const List<Map<String, String>> items = [
     {'letter': 'A', 'word': 'Apple', 'emoji': '🍎'},
-    {'letter': 'B', 'word': 'Banana', 'emoji': '🍌'},
+    {
+      'letter': 'B',
+      'word': 'Ball',
+      'emoji': '⚽',
+    },
     {'letter': 'C', 'word': 'Cat', 'emoji': '🐱'},
     {'letter': 'D', 'word': 'Dog', 'emoji': '🐶'},
     {'letter': 'E', 'word': 'Elephant', 'emoji': '🐘'},

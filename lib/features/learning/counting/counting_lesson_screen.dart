@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -16,24 +17,65 @@ class CountingLessonScreen extends StatefulWidget {
       _CountingLessonScreenState();
 }
 
-class _CountingLessonScreenState extends State<CountingLessonScreen> {
+class _CountingLessonScreenState
+    extends State<CountingLessonScreen> {
   final numbers = NumberData.items;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   int currentIndex = 0;
   bool isSpeaking = false;
+
+  static const Map<String, String> _audioFiles = {
+    '1': '1_one.mp3',
+    '2': '2_two.mp3',
+    '3': '3_three.mp3',
+    '4': '4_four.mp3',
+    '5': '5_five.mp3',
+    '6': '6_six.mp3',
+    '7': '7_seven.mp3',
+    '8': '8_eight.mp3',
+    '9': '9_nine.mp3',
+    '10': '10_ten.mp3',
+  };
 
   Future<void> _speakCurrentNumber() async {
     if (isSpeaking) return;
 
     final item = numbers[currentIndex];
+    final number = item['number']!;
+    final fileName = _audioFiles[number];
 
     setState(() {
       isSpeaking = true;
     });
 
-    await TtsService.instance.speak(
-      'Number ${item['number']}. ${item['word']}',
-    );
+    try {
+      await TtsService.instance.stop();
+      await _audioPlayer.stop();
+
+      if (fileName == null) {
+        throw Exception(
+          'No audio file found for number $number',
+        );
+      }
+
+      await _audioPlayer.play(
+        AssetSource(
+          'audio/numbers/$fileName',
+        ),
+      );
+
+      await _audioPlayer.onPlayerComplete.first;
+    } catch (error) {
+      debugPrint(
+        'Number natural audio error: $error',
+      );
+
+      // Old TTS remains as emergency fallback.
+      await TtsService.instance.speak(
+        'Number ${item['number']}. ${item['word']}',
+      );
+    }
 
     if (!mounted) return;
 
@@ -46,6 +88,7 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
     if (currentIndex == 0) return;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     setState(() {
       currentIndex--;
@@ -54,15 +97,18 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
   }
 
   void _goToNext() {
-    final isLast = currentIndex == numbers.length - 1;
+    final isLast =
+        currentIndex == numbers.length - 1;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     if (isLast) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const NumberQuizScreen(),
+          builder: (_) =>
+          const NumberQuizScreen(),
         ),
       );
       return;
@@ -77,14 +123,19 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
   @override
   void dispose() {
     TtsService.instance.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final item = numbers[currentIndex];
-    final isLast = currentIndex == numbers.length - 1;
-    final progress = (currentIndex + 1) / numbers.length;
+
+    final isLast =
+        currentIndex == numbers.length - 1;
+
+    final progress =
+        (currentIndex + 1) / numbers.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -93,11 +144,13 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
+          padding:
+          const EdgeInsets.all(AppSpacing.large),
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Number ${currentIndex + 1}',
@@ -113,12 +166,16 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
               const SizedBox(height: 10),
 
               ClipRRect(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius:
+                BorderRadius.circular(20),
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 10,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
+                  backgroundColor:
+                  Colors.grey.shade300,
+                  valueColor:
+                  const AlwaysStoppedAnimation<
+                      Color>(
                     AppColors.orange,
                   ),
                 ),
@@ -131,30 +188,40 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                   onTap: _speakCurrentNumber,
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(24),
+                    padding:
+                    const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius:
+                      BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
+                          color: Colors.black
+                              .withValues(
+                            alpha: 0.08,
+                          ),
                           blurRadius: 18,
-                          offset: const Offset(0, 8),
+                          offset:
+                          const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment:
+                      MainAxisAlignment.center,
                       children: [
                         Text(
                           item['number']!,
                           key: ValueKey(
                             '${item['number']}-number',
                           ),
-                          style: AppTextStyles.headingLarge.copyWith(
+                          style: AppTextStyles
+                              .headingLarge
+                              .copyWith(
                             fontSize: 90,
                             color: AppColors.orange,
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                            FontWeight.bold,
                           ),
                         )
                             .animate(
@@ -162,9 +229,15 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                             '${item['number']}-number-animation',
                           ),
                         )
-                            .fade(duration: 300.ms)
+                            .fade(
+                          duration: 300.ms,
+                        )
                             .scale(
-                          begin: const Offset(0.75, 0.75),
+                          begin:
+                          const Offset(
+                            0.75,
+                            0.75,
+                          ),
                           duration: 500.ms,
                           curve: Curves.elasticOut,
                         ),
@@ -176,8 +249,11 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                           key: ValueKey(
                             '${item['number']}-word',
                           ),
-                          style: AppTextStyles.headingMedium.copyWith(
-                            color: AppColors.textPrimary,
+                          style: AppTextStyles
+                              .headingMedium
+                              .copyWith(
+                            color:
+                            AppColors.textPrimary,
                           ),
                         ),
 
@@ -185,14 +261,17 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
 
                         Expanded(
                           child: Center(
-                            child: SingleChildScrollView(
+                            child:
+                            SingleChildScrollView(
                               child: Text(
                                 item['objects']!,
                                 key: ValueKey(
                                   '${item['number']}-objects',
                                 ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                textAlign:
+                                TextAlign.center,
+                                style:
+                                const TextStyle(
                                   fontSize: 42,
                                 ),
                               ),
@@ -203,12 +282,15 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                         const SizedBox(height: 18),
 
                         ElevatedButton.icon(
-                          onPressed:
-                          isSpeaking ? null : _speakCurrentNumber,
+                          onPressed: isSpeaking
+                              ? null
+                              : _speakCurrentNumber,
                           icon: Icon(
                             isSpeaking
-                                ? Icons.graphic_eq_rounded
-                                : Icons.volume_up_rounded,
+                                ? Icons
+                                .graphic_eq_rounded
+                                : Icons
+                                .volume_up_rounded,
                           ),
                           label: Text(
                             isSpeaking
@@ -221,8 +303,11 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
 
                         Text(
                           'Tap the card or Listen to hear the number.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                          style: AppTextStyles
+                              .bodySmall
+                              .copyWith(
+                            color: AppColors
+                                .textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -239,11 +324,14 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed:
-                      currentIndex == 0 ? null : _goToPrevious,
+                      currentIndex == 0
+                          ? null
+                          : _goToPrevious,
                       icon: const Icon(
                         Icons.arrow_back_rounded,
                       ),
-                      label: const Text('Previous'),
+                      label:
+                      const Text('Previous'),
                     ),
                   ),
 
@@ -255,10 +343,13 @@ class _CountingLessonScreenState extends State<CountingLessonScreen> {
                       icon: Icon(
                         isLast
                             ? Icons.quiz_rounded
-                            : Icons.arrow_forward_rounded,
+                            : Icons
+                            .arrow_forward_rounded,
                       ),
                       label: Text(
-                        isLast ? 'Start Quiz' : 'Next',
+                        isLast
+                            ? 'Start Quiz'
+                            : 'Next',
                       ),
                     ),
                   ),

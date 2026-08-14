@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +18,7 @@ class AnimalQuizScreen extends StatefulWidget {
 class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
   final animals = AnimalData.items;
   final LessonService _lessonService = LessonService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   late final ConfettiController _confettiController;
 
@@ -39,6 +41,7 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     _confettiController.dispose();
     super.dispose();
   }
@@ -46,25 +49,43 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
   void _generateOptions() {
     final correctAnimal = animals[currentQuestion]['name']!;
 
-    final wrongAnimals =
-        animals
-            .map((item) => item['name']!)
-            .where((animal) => animal != correctAnimal)
-            .toList()
-          ..shuffle();
+    final wrongAnimals = animals
+        .map((item) => item['name']!)
+        .where((animal) => animal != correctAnimal)
+        .toList()
+      ..shuffle();
 
-    _options = [correctAnimal, ...wrongAnimals.take(3)]..shuffle();
+    _options = [
+      correctAnimal,
+      ...wrongAnimals.take(3),
+    ]..shuffle();
+  }
+
+  Future<void> _playFeedbackAudio(String fileName) async {
+    try {
+      await _audioPlayer.stop();
+
+      await _audioPlayer.play(
+        AssetSource(
+          'audio/feedback/$fileName',
+        ),
+      );
+
+      await _audioPlayer.onPlayerComplete.first;
+    } catch (error) {
+      debugPrint(
+        'Animal quiz feedback audio error: $error',
+      );
+    }
   }
 
   Future<void> _handleAnswer(String selectedAnimal) async {
-    if (_answering) {
-      return;
-    }
+    if (_answering) return;
 
     final correctAnimal = animals[currentQuestion]['name']!;
-
     final isCorrect = selectedAnimal == correctAnimal;
 
+    // WRONG ANSWER
     if (!isCorrect) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -76,9 +97,14 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
           ),
         );
 
+      await _playFeedbackAudio(
+        'try_again.mp3',
+      );
+
       return;
     }
 
+    // CORRECT ANSWER
     setState(() {
       _answering = true;
       score++;
@@ -95,12 +121,13 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
         ),
       );
 
-    await Future<void>.delayed(const Duration(milliseconds: 550));
+    await _playFeedbackAudio(
+      'correct.mp3',
+    );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
+    // NEXT QUESTION
     if (currentQuestion < animals.length - 1) {
       setState(() {
         currentQuestion++;
@@ -111,20 +138,29 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
       return;
     }
 
-    final receivedRewards = await _lessonService.completeLesson(
+    // QUIZ COMPLETE
+    final receivedRewards =
+    await _lessonService.completeLesson(
       lessonId: 'animals',
       starsEarned: 10,
       coinsEarned: 50,
       xpEarned: 100,
     );
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     _confettiController.play();
 
-    await _showQuizCompleteDialog(receivedRewards: receivedRewards);
+    // NATURAL COMPLETION VOICE
+    await _playFeedbackAudio(
+      'lesson_complete.mp3',
+    );
+
+    if (!mounted) return;
+
+    await _showQuizCompleteDialog(
+      receivedRewards: receivedRewards,
+    );
 
     if (mounted) {
       setState(() {
@@ -139,13 +175,17 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Animal Quiz')),
+      appBar: AppBar(
+        title: const Text('Animal Quiz'),
+      ),
       body: Stack(
         alignment: Alignment.topCenter,
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.large),
+              padding: const EdgeInsets.all(
+                AppSpacing.large,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -159,18 +199,21 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
                   Center(
                     child: Text(
                       currentAnimal['emoji']!,
-                      style: const TextStyle(fontSize: 90),
+                      style: const TextStyle(
+                        fontSize: 90,
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 12),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         'Question ${currentQuestion + 1} '
-                        'of ${animals.length}',
+                            'of ${animals.length}',
                         style: AppTextStyles.bodySmall,
                       ),
                       Text(
@@ -187,10 +230,12 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: LinearProgressIndicator(
-                      value: (currentQuestion + 1) / animals.length,
+                      value:
+                      (currentQuestion + 1) / animals.length,
                       minHeight: 10,
                       backgroundColor: Colors.grey.shade300,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
+                      valueColor:
+                      const AlwaysStoppedAnimation<Color>(
                         AppColors.green,
                       ),
                     ),
@@ -215,7 +260,8 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
 
           ConfettiWidget(
             confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
+            blastDirectionality:
+            BlastDirectionality.explosive,
             emissionFrequency: 0.05,
             numberOfParticles: 25,
             gravity: 0.2,
@@ -228,16 +274,22 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
   Widget _animalButton(String animal) {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
-      onTap: _answering ? null : () => _handleAnswer(animal),
+      onTap: _answering
+          ? null
+          : () => _handleAnswer(animal),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
         opacity: _answering ? 0.65 : 1,
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.green.withValues(alpha: 0.15),
+            color: AppColors.green.withValues(
+              alpha: 0.15,
+            ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppColors.green.withValues(alpha: 0.3),
+              color: AppColors.green.withValues(
+                alpha: 0.3,
+              ),
               width: 2,
             ),
           ),
@@ -259,7 +311,9 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
     );
   }
 
-  Future<void> _showQuizCompleteDialog({required bool receivedRewards}) {
+  Future<void> _showQuizCompleteDialog({
+    required bool receivedRewards,
+  }) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -270,9 +324,15 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
           ),
           title: const Column(
             children: [
-              Text('🎉', style: TextStyle(fontSize: 55)),
+              Text(
+                '🎉',
+                style: TextStyle(fontSize: 55),
+              ),
               SizedBox(height: 8),
-              Text('Animals Complete!', textAlign: TextAlign.center),
+              Text(
+                'Animals Complete!',
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
           content: Column(
@@ -289,10 +349,13 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
               if (receivedRewards) ...[
                 const Text('⭐ +10 Stars'),
                 const SizedBox(height: 6),
+
                 const Text('🪙 +50 Coins'),
                 const SizedBox(height: 6),
+
                 const Text('⚡ +100 XP'),
                 const SizedBox(height: 12),
+
                 const Text(
                   '🏅 Animal Explorer badge unlocked!',
                   textAlign: TextAlign.center,
@@ -310,6 +373,8 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
               onPressed: () {
                 Navigator.pop(dialogContext);
 
+                _audioPlayer.stop();
+
                 setState(() {
                   currentQuestion = 0;
                   score = 0;
@@ -317,14 +382,21 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
                   _generateOptions();
                 });
               },
-              child: const Text('Play Again'),
+              child: const Text(
+                'Play Again',
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
+
+                _audioPlayer.stop();
+
                 Navigator.pop(context);
               },
-              child: const Text('Continue'),
+              child: const Text(
+                'Continue',
+              ),
             ),
           ],
         );

@@ -1,10 +1,10 @@
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/data/alphabet_data.dart';
-import '../../../core/services/tts_service.dart';
 
 class LetterMatchScreen extends StatefulWidget {
   const LetterMatchScreen({super.key});
@@ -16,6 +16,8 @@ class LetterMatchScreen extends StatefulWidget {
 class _LetterMatchScreenState extends State<LetterMatchScreen> {
   final List<Map<String, String>> alphabetItems = AlphabetData.items;
   final Random _random = Random();
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   int currentIndex = 0;
   int score = 0;
@@ -30,6 +32,10 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
   void initState() {
     super.initState();
     _generateOptions();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _playMatchSound('match_start.mp3');
+    });
   }
 
   String get currentLetter =>
@@ -53,6 +59,18 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
     ]..shuffle(_random);
   }
 
+  Future<void> _playMatchSound(String fileName) async {
+    try {
+      await _audioPlayer.stop();
+
+      await _audioPlayer.play(
+        AssetSource('audio/match/$fileName'),
+      );
+    } catch (e) {
+      debugPrint('Match audio error: $e');
+    }
+  }
+
   Future<void> _checkAnswer(String letter) async {
     if (isAnswering) return;
 
@@ -69,12 +87,10 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
     });
 
     if (answerIsCorrect) {
-      await TtsService.instance.speak(
-        'Correct! $currentLetter for $currentWord',
-      );
+      await _playMatchSound('match_correct.mp3');
 
       await Future<void>.delayed(
-        const Duration(milliseconds: 600),
+        const Duration(milliseconds: 900),
       );
 
       if (!mounted) return;
@@ -89,13 +105,21 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
           _generateOptions();
         });
       } else {
+        await _playMatchSound('match_complete.mp3');
+
+        await Future<void>.delayed(
+          const Duration(milliseconds: 900),
+        );
+
+        if (!mounted) return;
+
         _showCompleteDialog();
       }
     } else {
-      await TtsService.instance.speak('Try again');
+      await _playMatchSound('match_wrong.mp3');
 
       await Future<void>.delayed(
-        const Duration(milliseconds: 500),
+        const Duration(milliseconds: 900),
       );
 
       if (!mounted) return;
@@ -131,9 +155,8 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
       width: 78,
       height: 66,
       child: ElevatedButton(
-        onPressed: isAnswering
-            ? null
-            : () => _checkAnswer(letter),
+        onPressed:
+        isAnswering ? null : () => _checkAnswer(letter),
         style: ElevatedButton.styleFrom(
           backgroundColor: _buttonBackground(letter),
           disabledBackgroundColor: _buttonBackground(letter),
@@ -173,6 +196,8 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
 
       _generateOptions();
     });
+
+    _playMatchSound('match_start.mp3');
   }
 
   void _showCompleteDialog() {
@@ -226,7 +251,8 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
 
   @override
   void dispose() {
-    TtsService.instance.stop();
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -275,7 +301,7 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
                   backgroundColor:
                   Colors.white.withValues(alpha: 0.20),
                   valueColor:
-                  const AlwaysStoppedAnimation(
+                  const AlwaysStoppedAnimation<Color>(
                     AppColors.orange,
                   ),
                 ),
@@ -305,28 +331,28 @@ class _LetterMatchScreenState extends State<LetterMatchScreen> {
 
               const SizedBox(height: 30),
 
-              GestureDetector(
-                onTap: () {
-                  TtsService.instance.speak(
-                    '$currentLetter for $currentWord',
-                  );
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 210,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Center(
-                    child: Text(
-                      currentLetter,
-                      key: ValueKey(currentLetter),
-                      style: const TextStyle(
-                        color: AppColors.orange,
-                        fontSize: 100,
-                        fontWeight: FontWeight.bold,
-                      ),
+              Container(
+                width: double.infinity,
+                height: 210,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    currentLetter,
+                    key: ValueKey(currentLetter),
+                    style: const TextStyle(
+                      color: AppColors.orange,
+                      fontSize: 100,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),

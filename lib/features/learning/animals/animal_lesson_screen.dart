@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -17,22 +18,72 @@ class AnimalLessonScreen extends StatefulWidget {
 
 class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
   final animals = AnimalData.items;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   int currentIndex = 0;
   bool isSpeaking = false;
+
+  static const Map<String, String> _audioFiles = {
+    'Bear': 'bear.mp3',
+    'Cat': 'cat.mp3',
+    'Chicken': 'chicken.mp3',
+    'Cow': 'cow.mp3',
+    'Dog': 'dog.mp3',
+    'Duck': 'duck.mp3',
+    'Elephant': 'elephant.mp3',
+    'Fox': 'fox.mp3',
+    'Frog': 'frog.mp3',
+    'Goat': 'goat.mp3',
+    'Horse': 'horse.mp3',
+    'Lion': 'lion.mp3',
+    'Monkey': 'monkey.mp3',
+    'Panda': 'panda.mp3',
+    'Pig': 'pig.mp3',
+    'Rabbit': 'rabbit.mp3',
+    'Sheep': 'sheep.mp3',
+    'Tiger': 'tiger.mp3',
+    'Turtle': 'turtle.mp3',
+    'Zebra': 'zebra.mp3',
+  };
 
   Future<void> _speakCurrentAnimal() async {
     if (isSpeaking) return;
 
     final animal = animals[currentIndex];
+    final animalName = animal['name']!;
+    final fileName = _audioFiles[animalName];
 
     setState(() {
       isSpeaking = true;
     });
 
-    await TtsService.instance.speak(
-      'This is a ${animal['name']}',
-    );
+    try {
+      await TtsService.instance.stop();
+      await _audioPlayer.stop();
+
+      if (fileName == null) {
+        throw Exception(
+          'No natural audio found for $animalName',
+        );
+      }
+
+      await _audioPlayer.play(
+        AssetSource(
+          'audio/animals/$fileName',
+        ),
+      );
+
+      await _audioPlayer.onPlayerComplete.first;
+    } catch (error) {
+      debugPrint(
+        'Animal natural audio error: $error',
+      );
+
+      // Fallback to TTS if MP3 is missing or broken.
+      await TtsService.instance.speak(
+        'This is a $animalName',
+      );
+    }
 
     if (!mounted) return;
 
@@ -45,6 +96,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
     if (currentIndex == 0) return;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     setState(() {
       currentIndex--;
@@ -56,6 +108,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
     final isLast = currentIndex == animals.length - 1;
 
     TtsService.instance.stop();
+    _audioPlayer.stop();
 
     if (isLast) {
       Navigator.push(
@@ -76,6 +129,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
   @override
   void dispose() {
     TtsService.instance.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
