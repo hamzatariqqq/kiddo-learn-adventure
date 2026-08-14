@@ -2,17 +2,20 @@ import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/providers/progress_provider.dart';
 
-class NumberMatchScreen extends StatefulWidget {
+class NumberMatchScreen extends ConsumerStatefulWidget {
   const NumberMatchScreen({super.key});
 
   @override
-  State<NumberMatchScreen> createState() => _NumberMatchScreenState();
+  ConsumerState<NumberMatchScreen> createState() =>
+      _NumberMatchScreenState();
 }
 
-class _NumberMatchScreenState extends State<NumberMatchScreen> {
+class _NumberMatchScreenState extends ConsumerState<NumberMatchScreen> {
   final Random _random = Random();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -32,6 +35,7 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
   @override
   void initState() {
     super.initState();
+
     _generateOptions();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -97,6 +101,8 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
           _generateOptions();
         });
       } else {
+        ref.read(progressProvider.notifier).addStars(10);
+
         await _playMatchSound('match_complete.mp3');
 
         await Future<void>.delayed(
@@ -210,14 +216,29 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Text(
-            'Your score is $score / ${numbers.length}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Your score is $score / ${numbers.length}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '⭐ +10 Stars',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.orange,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
@@ -353,8 +374,7 @@ class _NumberMatchScreenState extends State<NumberMatchScreen> {
                 alignment: WrapAlignment.center,
                 spacing: 12,
                 runSpacing: 12,
-                children:
-                options.map(_numberButton).toList(),
+                children: options.map(_numberButton).toList(),
               ),
 
               const SizedBox(height: 28),

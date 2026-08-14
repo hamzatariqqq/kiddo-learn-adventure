@@ -181,10 +181,8 @@ class _ColorsQuizScreenState
 
     try {
       final bool firstCompletion =
-      await _lessonService
-          .completeLesson(
+      await _lessonService.completeLesson(
         lessonId: lessonId,
-        starsEarned: score * 5,
       );
 
       if (!mounted) return;

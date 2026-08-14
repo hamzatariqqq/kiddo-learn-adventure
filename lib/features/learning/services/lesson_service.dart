@@ -5,6 +5,11 @@ class LessonService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // Standard reward for every lesson.
+  static const int defaultStars = 10;
+  static const int defaultCoins = 50;
+  static const int defaultXp = 100;
+
   DocumentReference<Map<String, dynamic>>? get _userDocument {
     final user = _auth.currentUser;
 
@@ -17,9 +22,9 @@ class LessonService {
 
   Future<bool> completeLesson({
     required String lessonId,
-    required int starsEarned,
-    int coinsEarned = 50,
-    int xpEarned = 100,
+    int starsEarned = defaultStars,
+    int coinsEarned = defaultCoins,
+    int xpEarned = defaultXp,
   }) async {
     final userDocument = _userDocument;
 
@@ -40,6 +45,7 @@ class LessonService {
         data['completedLessonIds'] ?? <String>[],
       );
 
+      // Prevent duplicate rewards.
       if (completedLessonIds.contains(lessonId)) {
         return false;
       }
@@ -47,50 +53,70 @@ class LessonService {
       final currentXp = (data['xp'] ?? 0) as int;
       final newXp = currentXp + xpEarned;
 
+      // Every 500 XP increases the level.
       final newLevel = (newXp ~/ 500) + 1;
 
-      final currentBadges = List<String>.from(data['badges'] ?? <String>[]);
+      final currentBadges = List<String>.from(
+        data['badges'] ?? <String>[],
+      );
 
-      final newBadges = <String>[...currentBadges];
+      final newBadges = <String>[
+        ...currentBadges,
+      ];
 
+      // First lesson badge.
       if (!newBadges.contains('first_lesson')) {
         newBadges.add('first_lesson');
       }
 
-      if (lessonId == 'alphabet' && !newBadges.contains('alphabet_master')) {
+      // Lesson-specific badges.
+      if (lessonId == 'alphabet' &&
+          !newBadges.contains('alphabet_master')) {
         newBadges.add('alphabet_master');
       }
 
-      if (lessonId == 'numbers' && !newBadges.contains('number_master')) {
+      if (lessonId == 'numbers' &&
+          !newBadges.contains('number_master')) {
         newBadges.add('number_master');
       }
 
-      if (lessonId == 'animals' && !newBadges.contains('animal_explorer')) {
+      if (lessonId == 'animals' &&
+          !newBadges.contains('animal_explorer')) {
         newBadges.add('animal_explorer');
       }
 
-      if (lessonId == 'colors' && !newBadges.contains('color_genius')) {
+      if (lessonId == 'colors' &&
+          !newBadges.contains('color_genius')) {
         newBadges.add('color_genius');
       }
 
-      transaction.update(userDocument, {
-        'stars': FieldValue.increment(starsEarned),
-        'coins': FieldValue.increment(coinsEarned),
-        'xp': newXp,
-        'level': newLevel,
-        'completedLessons': FieldValue.increment(1),
-        'streak': FieldValue.increment(1),
-        'completedLessonIds': FieldValue.arrayUnion([lessonId]),
-        'badges': newBadges,
-        'lastLessonCompletedAt': FieldValue.serverTimestamp(),
-      });
+      transaction.update(
+        userDocument,
+        {
+          'stars': FieldValue.increment(starsEarned),
+          'coins': FieldValue.increment(coinsEarned),
+          'xp': newXp,
+          'level': newLevel,
+          'completedLessons': FieldValue.increment(1),
+          'streak': FieldValue.increment(1),
+          'completedLessonIds': FieldValue.arrayUnion(
+            [lessonId],
+          ),
+          'badges': newBadges,
+          'lastLessonCompletedAt':
+          FieldValue.serverTimestamp(),
+        },
+      );
 
       return true;
     });
   }
 
-  Future<bool> isLessonCompleted(String lessonId) async {
-    final completedLessons = await getCompletedLessons();
+  Future<bool> isLessonCompleted(
+      String lessonId,
+      ) async {
+    final completedLessons =
+    await getCompletedLessons();
 
     return completedLessons.contains(lessonId);
   }
@@ -110,7 +136,9 @@ class LessonService {
 
     final data = snapshot.data();
 
-    return List<String>.from(data?['completedLessonIds'] ?? <String>[]);
+    return List<String>.from(
+      data?['completedLessonIds'] ?? <String>[],
+    );
   }
 
   Future<bool> isLessonUnlocked({
@@ -121,7 +149,9 @@ class LessonService {
       return true;
     }
 
-    return isLessonCompleted(requiredPreviousLessonId);
+    return isLessonCompleted(
+      requiredPreviousLessonId,
+    );
   }
 
   Stream<List<String>> watchCompletedLessons() {
@@ -131,10 +161,15 @@ class LessonService {
       return Stream.value([]);
     }
 
-    return userDocument.snapshots().map((snapshot) {
-      final data = snapshot.data();
+    return userDocument.snapshots().map(
+          (snapshot) {
+        final data = snapshot.data();
 
-      return List<String>.from(data?['completedLessonIds'] ?? <String>[]);
-    });
+        return List<String>.from(
+          data?['completedLessonIds'] ??
+              <String>[],
+        );
+      },
+    );
   }
 }

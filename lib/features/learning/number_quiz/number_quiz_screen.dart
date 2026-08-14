@@ -156,9 +156,6 @@ class _NumberQuizScreenState extends State<NumberQuizScreen> {
     final receivedRewards =
     await _lessonService.completeLesson(
       lessonId: 'numbers',
-      starsEarned: 10,
-      coinsEarned: 50,
-      xpEarned: 100,
     );
 
     if (!mounted) return;

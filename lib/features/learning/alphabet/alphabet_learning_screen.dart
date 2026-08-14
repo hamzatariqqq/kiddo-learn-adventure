@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/data/alphabet_data.dart';
 import '../../../core/services/tts_service.dart';
 import '../alphabet_quiz/alphabet_quiz_screen.dart';
@@ -70,7 +69,9 @@ class _AlphabetLearningScreenState
       await _audioPlayer.stop();
 
       if (fileName == null) {
-        throw Exception('No audio file found for $letter');
+        throw Exception(
+          'No audio file found for $letter',
+        );
       }
 
       await _audioPlayer.play(
@@ -85,7 +86,6 @@ class _AlphabetLearningScreenState
         'Alphabet natural audio error: $error',
       );
 
-      // Fallback if an MP3 is missing/broken.
       await TtsService.instance.speak(
         '${item['letter']} for ${item['word']}',
       );
@@ -124,6 +124,7 @@ class _AlphabetLearningScreenState
           const AlphabetQuizScreen(),
         ),
       );
+
       return;
     }
 
@@ -144,6 +145,10 @@ class _AlphabetLearningScreenState
   Widget build(BuildContext context) {
     final item = alphabetItems[currentIndex];
 
+    final letter = item['letter']!;
+    final word = item['word']!;
+    final emoji = item['emoji']!;
+
     final isLast =
         currentIndex == alphabetItems.length - 1;
 
@@ -152,223 +157,845 @@ class _AlphabetLearningScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Learn Alphabets'),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding:
-          const EdgeInsets.all(AppSpacing.large),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: _AlphabetBackground(),
+          ),
+
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.large,
+                12,
+                AppSpacing.large,
+                16,
+              ),
+              child: Column(
                 children: [
-                  Text(
-                    'Letter ${currentIndex + 1}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                  Text(
-                    '${currentIndex + 1} / ${alphabetItems.length}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                ],
-              ),
+                  // =========================
+                  // TOP BAR
+                  // =========================
 
-              const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _CircleActionButton(
+                        icon: Icons.arrow_back_rounded,
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                      ),
 
-              ClipRRect(
-                borderRadius:
-                BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor:
-                  Colors.grey.shade300,
-                  valueColor:
-                  const AlwaysStoppedAnimation<
-                      Color>(
-                    AppColors.primaryBlue,
-                  ),
-                ),
-              ),
+                      const SizedBox(width: 12),
 
-              const SizedBox(height: 35),
-
-              Expanded(
-                child: GestureDetector(
-                  onTap: _speakCurrentItem,
-                  child: Container(
-                    width: double.infinity,
-                    padding:
-                    const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                      BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(
-                            alpha: 0.08,
-                          ),
-                          blurRadius: 18,
-                          offset:
-                          const Offset(0, 8),
+                      const Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              'ABC Adventure',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontSize: 21,
+                                fontWeight:
+                                FontWeight.w900,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Learn your letters',
+                              style: TextStyle(
+                                color:
+                                AppColors.textSecondary,
+                                fontSize: 11,
+                                fontWeight:
+                                FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          item['emoji']!,
-                          key: ValueKey(
-                            '${item['letter']}-emoji',
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      Container(
+                        padding:
+                        const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface
+                              .withValues(alpha: 0.92),
+                          borderRadius:
+                          BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.cyan
+                                .withValues(alpha: 0.25),
                           ),
+                        ),
+                        child: Text(
+                          '${currentIndex + 1}/${alphabetItems.length}',
                           style: const TextStyle(
-                            fontSize: 90,
-                          ),
-                        )
-                            .animate(
-                          key: ValueKey(
-                            '${item['letter']}-emoji-animation',
-                          ),
-                        )
-                            .fade(
-                          duration: 300.ms,
-                        )
-                            .scale(
-                          begin:
-                          const Offset(0.7, 0.7),
-                          duration: 500.ms,
-                          curve: Curves.elasticOut,
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        Text(
-                          item['letter']!,
-                          key: ValueKey(
-                            '${item['letter']}-letter',
-                          ),
-                          style: AppTextStyles
-                              .headingLarge
-                              .copyWith(
-                            fontSize: 80,
-                            color:
-                            AppColors.primaryBlue,
+                            color: AppColors.cyan,
                             fontWeight:
-                            FontWeight.bold,
-                          ),
-                        )
-                            .animate(
-                          key: ValueKey(
-                            '${item['letter']}-letter-animation',
-                          ),
-                        )
-                            .fade(
-                          duration: 300.ms,
-                        )
-                            .slideY(begin: 0.2),
-
-                        const SizedBox(height: 12),
-
-                        Text(
-                          '${item['letter']} for ${item['word']}',
-                          key: ValueKey(
-                            '${item['letter']}-word',
-                          ),
-                          style: AppTextStyles
-                              .headingMedium
-                              .copyWith(
-                            color:
-                            AppColors.textPrimary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 22),
-
-                        ElevatedButton.icon(
-                          onPressed: isSpeaking
-                              ? null
-                              : _speakCurrentItem,
-                          icon: Icon(
-                            isSpeaking
-                                ? Icons
-                                .graphic_eq_rounded
-                                : Icons
-                                .volume_up_rounded,
-                          ),
-                          label: Text(
-                            isSpeaking
-                                ? 'Speaking...'
-                                : 'Listen',
+                            FontWeight.w900,
+                            fontSize: 13,
                           ),
                         ),
-
-                        const SizedBox(height: 10),
-
-                        Text(
-                          'Tap the card or the button to hear the sound.',
-                          style: AppTextStyles
-                              .bodySmall
-                              .copyWith(
-                            color: AppColors
-                                .textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-              Row(
-                children: [
+                  // =========================
+                  // PROGRESS
+                  // =========================
+
+                  Row(
+                    children: [
+                      const Text(
+                        '⭐',
+                        style: TextStyle(
+                          fontSize: 19,
+                        ),
+                      ),
+
+                      const SizedBox(width: 9),
+
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius:
+                          BorderRadius.circular(30),
+                          child:
+                          LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 10,
+                            backgroundColor:
+                            AppColors.white
+                                .withValues(
+                              alpha: 0.10,
+                            ),
+                            valueColor:
+                            const AlwaysStoppedAnimation<
+                                Color>(
+                              AppColors.cyan,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // =========================
+                  // MAIN CARD
+                  // =========================
+
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed:
-                      currentIndex == 0
+                    child: GestureDetector(
+                      onTap: isSpeaking
                           ? null
-                          : _goToPrevious,
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
+                          : _speakCurrentItem,
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                          BorderRadius.circular(36),
+                          border: Border.all(
+                            color: AppColors.cyan
+                                .withValues(alpha: 0.20),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.cyan
+                                  .withValues(
+                                alpha: 0.13,
+                              ),
+                              blurRadius: 30,
+                              offset:
+                              const Offset(0, 14),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius:
+                          BorderRadius.circular(34),
+                          child: Stack(
+                            children: [
+                              // decorative bubbles
+
+                              Positioned(
+                                top: -55,
+                                right: -45,
+                                child:
+                                _DecorativeCircle(
+                                  size: 155,
+                                  color:
+                                  AppColors.cyan,
+                                  opacity: 0.09,
+                                ),
+                              ),
+
+                              Positioned(
+                                bottom: -75,
+                                left: -55,
+                                child:
+                                _DecorativeCircle(
+                                  size: 185,
+                                  color:
+                                  AppColors.gold,
+                                  opacity: 0.08,
+                                ),
+                              ),
+
+                              Positioned(
+                                top: 135,
+                                left: -30,
+                                child:
+                                _DecorativeCircle(
+                                  size: 70,
+                                  color: AppColors
+                                      .primaryBlue,
+                                  opacity: 0.06,
+                                ),
+                              ),
+
+                              Padding(
+                                padding:
+                                const EdgeInsets
+                                    .symmetric(
+                                  horizontal: 18,
+                                  vertical: 16,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment
+                                      .center,
+                                  children: [
+                                    // =================
+                                    // EMOJI BUBBLE
+                                    // =================
+
+                                    Container(
+                                      width: 120,
+                                      height: 120,
+                                      decoration:
+                                      BoxDecoration(
+                                        color: AppColors
+                                            .cyan
+                                            .withValues(
+                                          alpha: 0.10,
+                                        ),
+                                        shape:
+                                        BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors
+                                              .cyan
+                                              .withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          width: 2,
+                                        ),
+                                      ),
+                                      alignment:
+                                      Alignment.center,
+                                      child: Text(
+                                        emoji,
+                                        key: ValueKey(
+                                          '$letter-emoji',
+                                        ),
+                                        style:
+                                        const TextStyle(
+                                          fontSize: 72,
+                                        ),
+                                      )
+                                          .animate(
+                                        key: ValueKey(
+                                          '$letter-emoji-animation',
+                                        ),
+                                      )
+                                          .fadeIn(
+                                        duration:
+                                        250.ms,
+                                      )
+                                          .scale(
+                                        begin:
+                                        const Offset(
+                                          0.65,
+                                          0.65,
+                                        ),
+                                        end:
+                                        const Offset(
+                                          1,
+                                          1,
+                                        ),
+                                        duration:
+                                        550.ms,
+                                        curve: Curves
+                                            .elasticOut,
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      height: 10,
+                                    ),
+
+                                    // =================
+                                    // BIG LETTER
+                                    // =================
+
+                                    Text(
+                                      letter,
+                                      key: ValueKey(
+                                        '$letter-letter',
+                                      ),
+                                      style:
+                                      const TextStyle(
+                                        color:
+                                        AppColors.cyan,
+                                        fontSize: 92,
+                                        height: 0.95,
+                                        fontWeight:
+                                        FontWeight
+                                            .w900,
+                                      ),
+                                    )
+                                        .animate(
+                                      key: ValueKey(
+                                        '$letter-letter-animation',
+                                      ),
+                                    )
+                                        .fadeIn(
+                                      duration: 280.ms,
+                                    )
+                                        .slideY(
+                                      begin: 0.20,
+                                      end: 0,
+                                      duration: 350.ms,
+                                    ),
+
+                                    const SizedBox(
+                                      height: 12,
+                                    ),
+
+                                    // =================
+                                    // WORD CHIP
+                                    // =================
+
+                                    Container(
+                                      padding:
+                                      const EdgeInsets
+                                          .symmetric(
+                                        horizontal: 22,
+                                        vertical: 11,
+                                      ),
+                                      decoration:
+                                      BoxDecoration(
+                                        color: AppColors
+                                            .deepNavy
+                                            .withValues(
+                                          alpha: 0.06,
+                                        ),
+                                        borderRadius:
+                                        BorderRadius
+                                            .circular(
+                                          22,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '$letter for $word',
+                                        textAlign:
+                                        TextAlign
+                                            .center,
+                                        style:
+                                        const TextStyle(
+                                          color: AppColors
+                                              .deepNavy,
+                                          fontSize: 22,
+                                          fontWeight:
+                                          FontWeight
+                                              .w900,
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      height: 22,
+                                    ),
+
+                                    // =================
+                                    // PREMIUM LISTEN
+                                    // =================
+
+                                    _ListenButton(
+                                      isSpeaking:
+                                      isSpeaking,
+                                      onTap:
+                                      _speakCurrentItem,
+                                    ),
+
+                                    const SizedBox(
+                                      height: 10,
+                                    ),
+
+                                    AnimatedSwitcher(
+                                      duration:
+                                      const Duration(
+                                        milliseconds:
+                                        250,
+                                      ),
+                                      child: Row(
+                                        key: ValueKey(
+                                          isSpeaking,
+                                        ),
+                                        mainAxisAlignment:
+                                        MainAxisAlignment
+                                            .center,
+                                        children: [
+                                          Icon(
+                                            isSpeaking
+                                                ? Icons
+                                                .music_note_rounded
+                                                : Icons
+                                                .touch_app_rounded,
+                                            color: AppColors
+                                                .textSecondary,
+                                            size: 17,
+                                          ),
+                                          const SizedBox(
+                                            width: 5,
+                                          ),
+                                          Text(
+                                            isSpeaking
+                                                ? 'Listen carefully!'
+                                                : 'Tap the big button',
+                                            style:
+                                            const TextStyle(
+                                              color: AppColors
+                                                  .textSecondary,
+                                              fontSize:
+                                              12,
+                                              fontWeight:
+                                              FontWeight
+                                                  .w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      label:
-                      const Text('Previous'),
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 18),
 
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _goToNext,
-                      icon: Icon(
-                        isLast
-                            ? Icons.quiz_rounded
-                            : Icons
-                            .arrow_forward_rounded,
+                  // =========================
+                  // BOTTOM NAVIGATION
+                  // =========================
+
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 62,
+                        height: 58,
+                        child: OutlinedButton(
+                          onPressed:
+                          currentIndex == 0
+                              ? null
+                              : _goToPrevious,
+                          style:
+                          OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            shape:
+                            RoundedRectangleBorder(
+                              borderRadius:
+                              BorderRadius.circular(
+                                20,
+                              ),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons
+                                .arrow_back_rounded,
+                            size: 28,
+                          ),
+                        ),
                       ),
-                      label: Text(
-                        isLast
-                            ? 'Start Quiz'
-                            : 'Next',
+
+                      const SizedBox(width: 12),
+
+                      Expanded(
+                        child: SizedBox(
+                          height: 58,
+                          child:
+                          ElevatedButton.icon(
+                            onPressed: _goToNext,
+                            style:
+                            ElevatedButton.styleFrom(
+                              shape:
+                              RoundedRectangleBorder(
+                                borderRadius:
+                                BorderRadius
+                                    .circular(
+                                  20,
+                                ),
+                              ),
+                            ),
+                            icon: Icon(
+                              isLast
+                                  ? Icons
+                                  .celebration_rounded
+                                  : Icons
+                                  .arrow_forward_rounded,
+                              size: 26,
+                            ),
+                            label: Text(
+                              isLast
+                                  ? 'Quiz Time!'
+                                  : 'Next Letter',
+                              style:
+                              const TextStyle(
+                                fontSize: 17,
+                                fontWeight:
+                                FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
+// LISTEN BUTTON
+// =====================================================
+
+class _ListenButton extends StatelessWidget {
+  const _ListenButton({
+    required this.isSpeaking,
+    required this.onTap,
+  });
+
+  final bool isSpeaking;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap:
+          isSpeaking ? null : onTap,
+          child: AnimatedContainer(
+            duration:
+            const Duration(
+              milliseconds: 250,
+            ),
+            width:
+            isSpeaking ? 108 : 116,
+            height:
+            isSpeaking ? 108 : 116,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+
+              gradient:
+              const LinearGradient(
+                colors: [
+                  AppColors.cyan,
+                  AppColors.primaryBlue,
+                ],
+                begin:
+                Alignment.topLeft,
+                end:
+                Alignment.bottomRight,
+              ),
+
+              border: Border.all(
+                color: Colors.white
+                    .withValues(
+                  alpha: 0.95,
+                ),
+                width: 4,
+              ),
+
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.cyan
+                      .withValues(
+                    alpha: isSpeaking
+                        ? 0.50
+                        : 0.30,
+                  ),
+                  blurRadius:
+                  isSpeaking ? 34 : 22,
+                  spreadRadius:
+                  isSpeaking ? 7 : 2,
+                ),
+
+                BoxShadow(
+                  color: AppColors
+                      .primaryBlue
+                      .withValues(
+                    alpha: 0.18,
+                  ),
+                  blurRadius: 18,
+                  offset:
+                  const Offset(0, 9),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment:
+              MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSpeaking
+                      ? Icons
+                      .graphic_eq_rounded
+                      : Icons
+                      .volume_up_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
+
+                const SizedBox(height: 3),
+
+                Text(
+                  isSpeaking
+                      ? 'PLAYING'
+                      : 'LISTEN',
+                  style:
+                  const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight:
+                    FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )
+            .animate(
+          target:
+          isSpeaking ? 1 : 0,
+          onPlay: (controller) {
+            if (isSpeaking) {
+              controller.repeat(
+                reverse: true,
+              );
+            }
+          },
+        )
+            .scale(
+          begin:
+          const Offset(1, 1),
+          end:
+          const Offset(
+            1.06,
+            1.06,
+          ),
+          duration: 500.ms,
+        ),
+
+        if (!isSpeaking) ...[
+          const SizedBox(height: 5),
+          const Text(
+            '✨',
+            style: TextStyle(
+              fontSize: 18,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// =====================================================
+// TOP ACTION BUTTON
+// =====================================================
+
+class _CircleActionButton
+    extends StatelessWidget {
+  const _CircleActionButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        customBorder:
+        const CircleBorder(),
+        child: Ink(
+          width: 43,
+          height: 43,
+          decoration: BoxDecoration(
+            color: AppColors.surface
+                .withValues(
+              alpha: 0.92,
+            ),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.white
+                  .withValues(
+                alpha: 0.08,
+              ),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color:
+            AppColors.white,
+            size: 22,
           ),
         ),
+      ),
+    );
+  }
+}
+
+// =====================================================
+// BACKGROUND
+// =====================================================
+
+class _AlphabetBackground
+    extends StatelessWidget {
+  const _AlphabetBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration:
+      const BoxDecoration(
+        gradient:
+        LinearGradient(
+          colors: [
+            AppColors.deepNavy,
+            AppColors.background,
+            AppColors.navyBlue,
+          ],
+          begin:
+          Alignment.topCenter,
+          end:
+          Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 120,
+            right: -70,
+            child:
+            _BackgroundGlow(
+              size: 210,
+              color:
+              AppColors.cyan,
+            ),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -80,
+            child:
+            _BackgroundGlow(
+              size: 220,
+              color:
+              AppColors.gold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundGlow
+    extends StatelessWidget {
+  const _BackgroundGlow({
+    required this.size,
+    required this.color,
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: 0.05,
+        ),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(
+              alpha: 0.07,
+            ),
+            blurRadius: 70,
+            spreadRadius: 20,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =====================================================
+// DECORATIVE CIRCLE
+// =====================================================
+
+class _DecorativeCircle
+    extends StatelessWidget {
+  const _DecorativeCircle({
+    required this.size,
+    required this.color,
+    required this.opacity,
+  });
+
+  final double size;
+  final Color color;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withValues(
+          alpha: opacity,
+        ),
+        shape: BoxShape.circle,
       ),
     );
   }

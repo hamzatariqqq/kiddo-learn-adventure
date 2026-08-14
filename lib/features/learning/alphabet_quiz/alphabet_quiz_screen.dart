@@ -234,7 +234,6 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
       final firstCompletion =
       await _lessonService.completeLesson(
         lessonId: lessonId,
-        starsEarned: score * 5,
       );
 
       if (!mounted) return;
@@ -682,7 +681,7 @@ class _AlphabetQuizScreenState extends State<AlphabetQuizScreen> {
                 ),
                 Text(
                   firstCompletion
-                      ? 'You earned ${score * 5} stars, '
+                      ? 'You earned 10 stars, '
                       '50 coins and 100 XP!\n'
                       'Numbers are now unlocked! 🔓'
                       : 'You already completed this lesson.\n'

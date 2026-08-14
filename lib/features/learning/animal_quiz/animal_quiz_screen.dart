@@ -138,13 +138,10 @@ class _AnimalQuizScreenState extends State<AnimalQuizScreen> {
       return;
     }
 
-    // QUIZ COMPLETE
+    // QUIZ COPLETE  ....../////////////revice
     final receivedRewards =
     await _lessonService.completeLesson(
       lessonId: 'animals',
-      starsEarned: 10,
-      coinsEarned: 50,
-      xpEarned: 100,
     );
 
     if (!mounted) return;

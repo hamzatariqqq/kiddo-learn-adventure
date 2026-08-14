@@ -4,7 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
-import '../../../app/theme/app_text_styles.dart';
 import '../../../core/data/number_data.dart';
 import '../../../core/services/tts_service.dart';
 import '../number_quiz/number_quiz_screen.dart';
@@ -71,7 +70,6 @@ class _CountingLessonScreenState
         'Number natural audio error: $error',
       );
 
-      // Old TTS remains as emergency fallback.
       await TtsService.instance.speak(
         'Number ${item['number']}. ${item['word']}',
       );
@@ -107,8 +105,7 @@ class _CountingLessonScreenState
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-          const NumberQuizScreen(),
+          builder: (_) => const NumberQuizScreen(),
         ),
       );
       return;
@@ -139,217 +136,494 @@ class _CountingLessonScreenState
 
     return Scaffold(
       backgroundColor: AppColors.background,
+
       appBar: AppBar(
-        title: const Text('Learn Numbers'),
+        title: const Text(
+          '123 Adventure',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
+
       body: SafeArea(
         child: Padding(
-          padding:
-          const EdgeInsets.all(AppSpacing.large),
+          padding: const EdgeInsets.all(
+            AppSpacing.large,
+          ),
           child: Column(
             children: [
+              // ==================================
+              // PROGRESS
+              // ==================================
+
               Row(
-                mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Number ${currentIndex + 1}',
-                    style: AppTextStyles.bodySmall,
+                  const Text(
+                    '⭐',
+                    style: TextStyle(
+                      fontSize: 20,
+                    ),
                   ),
-                  Text(
-                    '${currentIndex + 1} / ${numbers.length}',
-                    style: AppTextStyles.bodySmall,
+
+                  const SizedBox(width: 8),
+
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius:
+                      BorderRadius.circular(20),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 10,
+                        backgroundColor:
+                        AppColors.surface,
+                        valueColor:
+                        const AlwaysStoppedAnimation<
+                            Color>(
+                          AppColors.orange,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.orange
+                          .withValues(alpha: 0.14),
+                      borderRadius:
+                      BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      '${currentIndex + 1}/${numbers.length}',
+                      style: const TextStyle(
+                        color: AppColors.orange,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
 
-              ClipRRect(
-                borderRadius:
-                BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor:
-                  Colors.grey.shade300,
-                  valueColor:
-                  const AlwaysStoppedAnimation<
-                      Color>(
-                    AppColors.orange,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
+              // ==================================
+              // MAIN NUMBER CARD
+              // ==================================
 
               Expanded(
-                child: GestureDetector(
-                  onTap: _speakCurrentNumber,
-                  child: Container(
-                    width: double.infinity,
-                    padding:
-                    const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius:
-                      BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(
-                            alpha: 0.08,
-                          ),
-                          blurRadius: 18,
-                          offset:
-                          const Offset(0, 8),
-                        ),
-                      ],
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                    BorderRadius.circular(34),
+                    border: Border.all(
+                      color: AppColors.orange
+                          .withValues(alpha: 0.30),
+                      width: 2,
                     ),
-                    child: Column(
-                      mainAxisAlignment:
-                      MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          item['number']!,
-                          key: ValueKey(
-                            '${item['number']}-number',
-                          ),
-                          style: AppTextStyles
-                              .headingLarge
-                              .copyWith(
-                            fontSize: 90,
-                            color: AppColors.orange,
-                            fontWeight:
-                            FontWeight.bold,
-                          ),
-                        )
-                            .animate(
-                          key: ValueKey(
-                            '${item['number']}-number-animation',
-                          ),
-                        )
-                            .fade(
-                          duration: 300.ms,
-                        )
-                            .scale(
-                          begin:
-                          const Offset(
-                            0.75,
-                            0.75,
-                          ),
-                          duration: 500.ms,
-                          curve: Curves.elasticOut,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.orange
+                            .withValues(alpha: 0.12),
+                        blurRadius: 25,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
 
-                        const SizedBox(height: 8),
-
-                        Text(
-                          item['word']!,
-                          key: ValueKey(
-                            '${item['number']}-word',
-                          ),
-                          style: AppTextStyles
-                              .headingMedium
-                              .copyWith(
-                            color:
-                            AppColors.textPrimary,
+                  child: Stack(
+                    children: [
+                      // Background decorations
+                      Positioned(
+                        top: -55,
+                        right: -50,
+                        child: Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            color: AppColors.orange
+                                .withValues(
+                              alpha: 0.08,
+                            ),
+                            shape: BoxShape.circle,
                           ),
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
+                      Positioned(
+                        bottom: -70,
+                        left: -60,
+                        child: Container(
+                          width: 180,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppColors.gold
+                                .withValues(
+                              alpha: 0.08,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
 
-                        Expanded(
-                          child: Center(
-                            child:
-                            SingleChildScrollView(
-                              child: Text(
-                                item['objects']!,
-                                key: ValueKey(
-                                  '${item['number']}-objects',
+                      Padding(
+                        padding:
+                        const EdgeInsets.all(18),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 4),
+
+                            // ==========================
+                            // NUMBER
+                            // ==========================
+
+                            Text(
+                              item['number']!,
+                              key: ValueKey(
+                                '${item['number']}-number',
+                              ),
+                              style: const TextStyle(
+                                color: AppColors.orange,
+                                fontSize: 88,
+                                height: 1,
+                                fontWeight:
+                                FontWeight.w900,
+                              ),
+                            )
+                                .animate(
+                              key: ValueKey(
+                                '${item['number']}-number-animation',
+                              ),
+                            )
+                                .fade(
+                              duration: 250.ms,
+                            )
+                                .scale(
+                              begin:
+                              const Offset(.65, .65),
+                              duration: 520.ms,
+                              curve: Curves.elasticOut,
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            // ==========================
+                            // NUMBER WORD
+                            // ==========================
+
+                            Container(
+                              padding:
+                              const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.orange
+                                    .withValues(
+                                  alpha: 0.10,
                                 ),
-                                textAlign:
-                                TextAlign.center,
-                                style:
-                                const TextStyle(
-                                  fontSize: 42,
+                                borderRadius:
+                                BorderRadius.circular(
+                                  30,
+                                ),
+                              ),
+                              child: Text(
+                                item['word']!,
+                                style: const TextStyle(
+                                  color:
+                                  AppColors.deepNavy,
+                                  fontSize: 22,
+                                  fontWeight:
+                                  FontWeight.w900,
                                 ),
                               ),
                             ),
-                          ),
+
+                            const SizedBox(height: 14),
+
+                            // ==========================
+                            // COUNTING OBJECTS
+                            // ==========================
+
+                            Expanded(
+                              child: Center(
+                                child:
+                                SingleChildScrollView(
+                                  child: Text(
+                                    item['objects']!,
+                                    key: ValueKey(
+                                      '${item['number']}-objects',
+                                    ),
+                                    textAlign:
+                                    TextAlign.center,
+                                    style:
+                                    const TextStyle(
+                                      fontSize: 39,
+                                      height: 1.25,
+                                    ),
+                                  )
+                                      .animate(
+                                    key: ValueKey(
+                                      '${item['number']}-objects-animation',
+                                    ),
+                                  )
+                                      .fade(
+                                    duration: 300.ms,
+                                  )
+                                      .scale(
+                                    begin:
+                                    const Offset(
+                                      .85,
+                                      .85,
+                                    ),
+                                    duration: 450.ms,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // ==========================
+                            // FUN LISTEN BUTTON
+                            // ==========================
+
+                            GestureDetector(
+                              onTap: isSpeaking
+                                  ? null
+                                  : _speakCurrentNumber,
+                              child: AnimatedContainer(
+                                duration: const Duration(
+                                  milliseconds: 250,
+                                ),
+                                width:
+                                isSpeaking ? 100 : 108,
+                                height:
+                                isSpeaking ? 100 : 108,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+
+                                  gradient:
+                                  const LinearGradient(
+                                    colors: [
+                                      AppColors.orange,
+                                      AppColors.gold,
+                                    ],
+                                    begin:
+                                    Alignment.topLeft,
+                                    end: Alignment
+                                        .bottomRight,
+                                  ),
+
+                                  border: Border.all(
+                                    color: Colors.white
+                                        .withValues(
+                                      alpha: 0.90,
+                                    ),
+                                    width: 4,
+                                  ),
+
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors
+                                          .orange
+                                          .withValues(
+                                        alpha: isSpeaking
+                                            ? 0.55
+                                            : 0.30,
+                                      ),
+                                      blurRadius:
+                                      isSpeaking
+                                          ? 34
+                                          : 20,
+                                      spreadRadius:
+                                      isSpeaking
+                                          ? 7
+                                          : 2,
+                                    ),
+                                  ],
+                                ),
+
+                                child: Column(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment
+                                      .center,
+                                  children: [
+                                    Icon(
+                                      isSpeaking
+                                          ? Icons
+                                          .graphic_eq_rounded
+                                          : Icons
+                                          .volume_up_rounded,
+                                      color:
+                                      Colors.white,
+                                      size: 41,
+                                    ),
+
+                                    const SizedBox(
+                                      height: 2,
+                                    ),
+
+                                    Text(
+                                      isSpeaking
+                                          ? 'PLAYING'
+                                          : 'LISTEN',
+                                      style:
+                                      const TextStyle(
+                                        color:
+                                        Colors.white,
+                                        fontSize: 10,
+                                        fontWeight:
+                                        FontWeight
+                                            .w900,
+                                        letterSpacing:
+                                        0.8,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                                .animate(
+                              target:
+                              isSpeaking ? 1 : 0,
+                              onPlay: (controller) {
+                                if (isSpeaking) {
+                                  controller.repeat(
+                                    reverse: true,
+                                  );
+                                }
+                              },
+                            )
+                                .scale(
+                              begin:
+                              const Offset(1, 1),
+                              end: const Offset(
+                                1.06,
+                                1.06,
+                              ),
+                              duration: 500.ms,
+                            ),
+
+                            const SizedBox(height: 9),
+
+                            Row(
+                              mainAxisAlignment:
+                              MainAxisAlignment
+                                  .center,
+                              children: [
+                                Icon(
+                                  isSpeaking
+                                      ? Icons
+                                      .music_note_rounded
+                                      : Icons
+                                      .touch_app_rounded,
+                                  color:
+                                  AppColors.orange,
+                                  size: 17,
+                                ),
+
+                                const SizedBox(width: 5),
+
+                                Text(
+                                  isSpeaking
+                                      ? 'Listen carefully!'
+                                      : 'Tap to hear the number',
+                                  style:
+                                  const TextStyle(
+                                    color: AppColors
+                                        .textSecondary,
+                                    fontSize: 12,
+                                    fontWeight:
+                                    FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 5),
+                          ],
                         ),
-
-                        const SizedBox(height: 18),
-
-                        ElevatedButton.icon(
-                          onPressed: isSpeaking
-                              ? null
-                              : _speakCurrentNumber,
-                          icon: Icon(
-                            isSpeaking
-                                ? Icons
-                                .graphic_eq_rounded
-                                : Icons
-                                .volume_up_rounded,
-                          ),
-                          label: Text(
-                            isSpeaking
-                                ? 'Speaking...'
-                                : 'Listen',
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        Text(
-                          'Tap the card or Listen to hear the number.',
-                          style: AppTextStyles
-                              .bodySmall
-                              .copyWith(
-                            color: AppColors
-                                .textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // ==================================
+              // NAVIGATION
+              // ==================================
 
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed:
-                      currentIndex == 0
+                  SizedBox(
+                    width: 70,
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: currentIndex == 0
                           ? null
                           : _goToPrevious,
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(18),
+                        ),
                       ),
-                      label:
-                      const Text('Previous'),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        size: 28,
+                      ),
                     ),
                   ),
 
                   const SizedBox(width: 12),
 
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _goToNext,
-                      icon: Icon(
-                        isLast
-                            ? Icons.quiz_rounded
-                            : Icons
-                            .arrow_forward_rounded,
-                      ),
-                      label: Text(
-                        isLast
-                            ? 'Start Quiz'
-                            : 'Next',
+                    child: SizedBox(
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        onPressed: _goToNext,
+                        icon: Icon(
+                          isLast
+                              ? Icons
+                              .celebration_rounded
+                              : Icons
+                              .arrow_forward_rounded,
+                          size: 25,
+                        ),
+                        label: Text(
+                          isLast
+                              ? 'Quiz Time!'
+                              : 'Next',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight:
+                            FontWeight.w900,
+                          ),
+                        ),
+                        style:
+                        ElevatedButton.styleFrom(
+                          backgroundColor:
+                          AppColors.orange,
+                          foregroundColor:
+                          AppColors.deepNavy,
+                          shape:
+                          RoundedRectangleBorder(
+                            borderRadius:
+                            BorderRadius.circular(
+                              18,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

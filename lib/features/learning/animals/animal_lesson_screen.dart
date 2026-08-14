@@ -79,7 +79,6 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
         'Animal natural audio error: $error',
       );
 
-      // Fallback to TTS if MP3 is missing or broken.
       await TtsService.instance.speak(
         'This is a $animalName',
       );
@@ -129,6 +128,7 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
   @override
   void dispose() {
     TtsService.instance.stop();
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -137,179 +137,307 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
   Widget build(BuildContext context) {
     final animal = animals[currentIndex];
     final isLast = currentIndex == animals.length - 1;
-    final progress = (currentIndex + 1) / animals.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Learn Animals'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: const Text(
+          'Animal Adventure',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.large,
+            8,
+            AppSpacing.large,
+            AppSpacing.large,
+          ),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Animal ${currentIndex + 1}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                  Text(
-                    '${currentIndex + 1} / ${animals.length}',
-                    style: AppTextStyles.bodySmall,
-                  ),
-                ],
-              ),
+              _buildProgressDots(),
 
-              const SizedBox(height: 10),
-
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey.shade300,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.green,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
+              const SizedBox(height: 18),
 
               Expanded(
-                child: GestureDetector(
-                  onTap: _speakCurrentAnimal,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: -35,
+                        right: -35,
+                        child: _bubble(
+                          size: 125,
+                          color: AppColors.green,
+                          opacity: 0.12,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          animal['emoji']!,
-                          key: ValueKey(
-                            '${animal['name']}-emoji',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 110,
-                          ),
-                        )
-                            .animate(
-                          key: ValueKey(
-                            '${animal['name']}-emoji-animation',
-                          ),
-                        )
-                            .fade(duration: 300.ms)
-                            .scale(
-                          begin: const Offset(0.72, 0.72),
-                          duration: 520.ms,
-                          curve: Curves.elasticOut,
+                      ),
+                      Positioned(
+                        bottom: 80,
+                        left: -35,
+                        child: _bubble(
+                          size: 100,
+                          color: AppColors.primaryBlue,
+                          opacity: 0.09,
                         ),
+                      ),
 
-                        const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.green.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'ANIMAL ${currentIndex + 1}',
+                                style: const TextStyle(
+                                  color: AppColors.green,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                            ),
 
-                        Text(
-                          animal['name']!,
-                          key: ValueKey(
-                            '${animal['name']}-name',
-                          ),
-                          style: AppTextStyles.headingLarge.copyWith(
-                            color: AppColors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        )
-                            .animate(
-                          key: ValueKey(
-                            '${animal['name']}-name-animation',
-                          ),
-                        )
-                            .fade(duration: 300.ms)
-                            .slideY(begin: 0.2),
+                            const SizedBox(height: 12),
 
-                        const SizedBox(height: 16),
+                            Expanded(
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 180,
+                                        height: 180,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.green.withValues(
+                                            alpha: 0.10,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.green
+                                                  .withValues(alpha: 0.12),
+                                              blurRadius: 22,
+                                              spreadRadius: 5,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            animal['emoji']!,
+                                            key: ValueKey(
+                                              '${animal['name']}-emoji',
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 100,
+                                            ),
+                                          )
+                                              .animate(
+                                            key: ValueKey(
+                                              '${animal['name']}-emoji-animation',
+                                            ),
+                                          )
+                                              .fade(duration: 250.ms)
+                                              .scale(
+                                            begin: const Offset(
+                                              0.65,
+                                              0.65,
+                                            ),
+                                            end: const Offset(1, 1),
+                                            duration: 550.ms,
+                                            curve: Curves.elasticOut,
+                                          ),
+                                        ),
+                                      ),
 
-                        Text(
-                          'This is a ${animal['name']}',
-                          style: AppTextStyles.headingMedium.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
-                          textAlign: TextAlign.center,
+                                      const SizedBox(height: 22),
+
+                                      Text(
+                                        animal['name']!,
+                                        key: ValueKey(
+                                          '${animal['name']}-name',
+                                        ),
+                                        style: AppTextStyles.headingLarge
+                                            .copyWith(
+                                          color: AppColors.green,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      )
+                                          .animate(
+                                        key: ValueKey(
+                                          '${animal['name']}-name-animation',
+                                        ),
+                                      )
+                                          .fade(duration: 250.ms)
+                                          .slideY(begin: 0.15),
+
+                                      const SizedBox(height: 12),
+
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primaryBlue
+                                              .withValues(alpha: 0.08),
+                                          borderRadius:
+                                          BorderRadius.circular(24),
+                                        ),
+                                        child: Text(
+                                          'This is a ${animal['name']}',
+                                          style: AppTextStyles.headingMedium
+                                              .copyWith(
+                                            color:
+                                            AppColors.textPrimary,
+                                            fontWeight:
+                                            FontWeight.w700,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 30),
+
+                                      _buildListenButton(),
+
+                                      const SizedBox(height: 12),
+
+                                      Row(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            isSpeaking
+                                                ? Icons.music_note_rounded
+                                                : Icons.touch_app_rounded,
+                                            color: AppColors.green,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            isSpeaking
+                                                ? 'Listen carefully!'
+                                                : 'Tap to hear the animal',
+                                            style: const TextStyle(
+                                              color:
+                                              AppColors.textSecondary,
+                                              fontSize: 13,
+                                              fontWeight:
+                                              FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-
-                        const SizedBox(height: 24),
-
-                        ElevatedButton.icon(
-                          onPressed:
-                          isSpeaking ? null : _speakCurrentAnimal,
-                          icon: Icon(
-                            isSpeaking
-                                ? Icons.graphic_eq_rounded
-                                : Icons.volume_up_rounded,
-                          ),
-                          label: Text(
-                            isSpeaking
-                                ? 'Speaking...'
-                                : 'Listen',
-                          ),
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        Text(
-                          'Tap the card or Listen to hear the animal name.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
+                  SizedBox(
+                    width: 58,
+                    height: 58,
+                    child: OutlinedButton(
                       onPressed:
                       currentIndex == 0 ? null : _goToPrevious,
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        side: BorderSide(
+                          color: currentIndex == 0
+                              ? Colors.grey.shade300
+                              : AppColors.green,
+                          width: 2,
+                        ),
                       ),
-                      label: const Text('Previous'),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        size: 28,
+                      ),
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
 
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _goToNext,
-                      icon: Icon(
-                        isLast
-                            ? Icons.quiz_rounded
-                            : Icons.arrow_forward_rounded,
-                      ),
-                      label: Text(
-                        isLast ? 'Start Quiz' : 'Next',
+                    child: SizedBox(
+                      height: 58,
+                      child: ElevatedButton(
+                        onPressed: _goToNext,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.green,
+                          foregroundColor: Colors.white,
+                          elevation: 5,
+                          shadowColor:
+                          AppColors.green.withValues(alpha: 0.35),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              isLast ? 'START QUIZ' : 'NEXT',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.7,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              isLast
+                                  ? Icons.quiz_rounded
+                                  : Icons.arrow_forward_rounded,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -318,6 +446,117 @@ class _AnimalLessonScreenState extends State<AnimalLessonScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildListenButton() {
+    return GestureDetector(
+      onTap: isSpeaking ? null : _speakCurrentAnimal,
+      child: Container(
+        width: 94,
+        height: 94,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.green,
+              AppColors.darkBlue,
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white,
+            width: 4,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.green.withValues(
+                alpha: isSpeaking ? 0.50 : 0.28,
+              ),
+              blurRadius: isSpeaking ? 32 : 18,
+              spreadRadius: isSpeaking ? 6 : 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSpeaking
+                  ? Icons.graphic_eq_rounded
+                  : Icons.volume_up_rounded,
+              color: Colors.white,
+              size: 39,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              isSpeaking ? 'PLAYING' : 'LISTEN',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+      )
+          .animate(
+        target: isSpeaking ? 1 : 0,
+        onPlay: (controller) {
+          if (isSpeaking) {
+            controller.repeat(reverse: true);
+          }
+        },
+      )
+          .scale(
+        begin: const Offset(1, 1),
+        end: const Offset(1.07, 1.07),
+        duration: 500.ms,
+      ),
+    );
+  }
+
+  Widget _buildProgressDots() {
+    return SizedBox(
+      height: 22,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: animals.length,
+        separatorBuilder: (context, index) =>
+        const SizedBox(width: 7),
+        itemBuilder: (context, index) {
+          final completed = index <= currentIndex;
+
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            width: index == currentIndex ? 25 : 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: completed
+                  ? AppColors.green
+                  : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _bubble({
+    required double size,
+    required Color color,
+    required double opacity,
+  }) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: opacity),
       ),
     );
   }
