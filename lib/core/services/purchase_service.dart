@@ -7,19 +7,21 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PurchaseService {
-  PurchaseService({
-    this.onPurchaseUpdated,
-  });
+  PurchaseService();
 
   static const String premiumProductId = 'premium_unlock';
-
-  final void Function(PurchaseDetails purchase)? onPurchaseUpdated;
 
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+
+  final StreamController<PurchaseDetails> _purchaseController =
+  StreamController<PurchaseDetails>.broadcast();
+
+  Stream<PurchaseDetails> get purchaseUpdates =>
+      _purchaseController.stream;
 
   ProductDetails? premiumProduct;
 
@@ -29,10 +31,8 @@ class PurchaseService {
   bool get storeAvailable => isStoreAvailable;
 
   Future<void> initialize() async {
-    // First restore Premium state from local/Firebase.
     await _loadSavedPremiumStatus();
 
-    // Then initialize Google Play Billing.
     isStoreAvailable = await _inAppPurchase.isAvailable();
 
     if (!isStoreAvailable) {
@@ -43,8 +43,9 @@ class PurchaseService {
     _purchaseSubscription ??=
         _inAppPurchase.purchaseStream.listen(
           _handlePurchaseUpdates,
-          onDone: () {
-            _purchaseSubscription?.cancel();
+          onDone: () async {
+            await _purchaseSubscription?.cancel();
+            _purchaseSubscription = null;
           },
           onError: (Object error) {
             debugPrint(
@@ -69,7 +70,6 @@ class PurchaseService {
 
     final cacheKey = 'premium_${user.uid}';
 
-    // Load cached value first.
     isPremium =
         preferences.getBool(cacheKey) ?? false;
 
@@ -96,9 +96,6 @@ class PurchaseService {
       debugPrint(
         'Unable to load Premium status from Firestore: $error',
       );
-
-      // Keep locally cached Premium state if Firebase
-      // temporarily cannot be reached.
     }
   }
 
@@ -125,14 +122,12 @@ class PurchaseService {
       );
     }
 
-    if (response.productDetails.isNotEmpty) {
-      premiumProduct =
-          response.productDetails.firstWhere(
-                (product) =>
-            product.id == premiumProductId,
-            orElse: () =>
-            response.productDetails.first,
-          );
+    for (final product
+    in response.productDetails) {
+      if (product.id == premiumProductId) {
+        premiumProduct = product;
+        break;
+      }
     }
   }
 
@@ -142,6 +137,13 @@ class PurchaseService {
     if (user == null) {
       debugPrint(
         'User must be signed in before purchasing Premium.',
+      );
+      return false;
+    }
+
+    if (isPremium) {
+      debugPrint(
+        'Premium is already active.',
       );
       return false;
     }
@@ -232,32 +234,49 @@ class PurchaseService {
 
       switch (purchase.status) {
         case PurchaseStatus.purchased:
+          await _activatePremium();
+          break;
+
         case PurchaseStatus.restored:
           await _activatePremium();
           break;
 
-        case PurchaseStatus.error:
+        case PurchaseStatus.pending:
           debugPrint(
-            'Purchase error: ${purchase.error}',
+            'Premium purchase is pending.',
           );
           break;
 
-        case PurchaseStatus.pending:
+        case PurchaseStatus.error:
           debugPrint(
-            'Purchase is pending.',
+            'Premium purchase error: ${purchase.error}',
           );
           break;
 
         case PurchaseStatus.canceled:
           debugPrint(
-            'Purchase was canceled.',
+            'Premium purchase canceled.',
           );
           break;
       }
 
-      onPurchaseUpdated?.call(purchase);
+      if (!_purchaseController.isClosed) {
+        _purchaseController.add(
+          purchase,
+        );
+      }
 
-      if (purchase.pendingCompletePurchase) {
+      if (purchase.pendingCompletePurchase &&
+          purchase.status ==
+              PurchaseStatus.purchased) {
+        await _inAppPurchase.completePurchase(
+          purchase,
+        );
+      }
+
+      if (purchase.pendingCompletePurchase &&
+          purchase.status ==
+              PurchaseStatus.restored) {
         await _inAppPurchase.completePurchase(
           purchase,
         );
@@ -272,5 +291,9 @@ class PurchaseService {
   Future<void> dispose() async {
     await _purchaseSubscription?.cancel();
     _purchaseSubscription = null;
+
+    if (!_purchaseController.isClosed) {
+      await _purchaseController.close();
+    }
   }
 }

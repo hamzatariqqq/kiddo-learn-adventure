@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
-import '../../core/widgets/banner_ad_widget.dart';
+import '../../core/widgets/premium_banner_ad.dart';
 import '../../core/widgets/rewarded_ad_button.dart';
 import '../auth/providers/user_provider.dart';
 import '../learning/alphabet/alphabet_learning_screen.dart';
@@ -412,7 +412,7 @@ class HomeScreen extends ConsumerWidget {
                       // BANNER AD
                       // =========================
 
-                      const BannerAdWidget(),
+                      const PremiumBannerAd(),
 
                       const SizedBox(height: 20),
                     ],
@@ -559,9 +559,9 @@ class _KidLearningCard extends StatelessWidget {
   }
 }
 
-// =====================================================
+
 // SMALL ADULT BUTTON
-// =====================================================
+
 
 class _SmallTopButton extends StatelessWidget {
   const _SmallTopButton({
@@ -602,9 +602,7 @@ class _SmallTopButton extends StatelessWidget {
   }
 }
 
-// =====================================================
 // BACKGROUND
-// =====================================================
 
 class _KidBackground extends StatelessWidget {
   const _KidBackground();

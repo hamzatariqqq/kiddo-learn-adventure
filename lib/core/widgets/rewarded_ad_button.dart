@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_colors.dart';
-import '../../features/auth/providers/user_provider.dart';
+import '../providers/premium_provider.dart';
 import '../services/ad_service.dart';
 
 class RewardedAdButton extends ConsumerStatefulWidget {
@@ -23,15 +23,32 @@ class RewardedAdButton extends ConsumerStatefulWidget {
 class _RewardedAdButtonState
     extends ConsumerState<RewardedAdButton> {
   bool _isGivingReward = false;
+  bool _isShowingAd = false;
 
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prepareRewardedAd();
+    });
+  }
+
+  void _prepareRewardedAd() {
+    final isPremium =
+        ref.read(premiumProvider).value ?? false;
+
+    if (isPremium) {
+      return;
+    }
+
     AdService.instance.loadRewarded();
   }
 
   Future<void> _giveCoins() async {
-    if (_isGivingReward) return;
+    if (_isGivingReward) {
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
 
@@ -40,6 +57,7 @@ class _RewardedAdButtonState
         'Please login before claiming this reward.',
         AppColors.coral,
       );
+
       return;
     }
 
@@ -51,16 +69,23 @@ class _RewardedAdButtonState
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
-          .update({
-        'coins': FieldValue.increment(
-          widget.rewardCoins,
+          .set(
+        {
+          'coins': FieldValue.increment(
+            widget.rewardCoins,
+          ),
+          'lastRewardedAdAt':
+          FieldValue.serverTimestamp(),
+        },
+        SetOptions(
+          merge: true,
         ),
-      });
+      );
 
       if (!mounted) return;
 
       _showMessage(
-        '${widget.rewardCoins} bonus coins added!',
+        '🪙 ${widget.rewardCoins} bonus coins added!',
         AppColors.green,
       );
     } catch (error) {
@@ -80,6 +105,18 @@ class _RewardedAdButtonState
   }
 
   void _showAd() {
+    if (_isShowingAd ||
+        _isGivingReward) {
+      return;
+    }
+
+    final isPremium =
+        ref.read(premiumProvider).value ?? false;
+
+    if (isPremium) {
+      return;
+    }
+
     if (!AdService.instance.isRewardedReady) {
       AdService.instance.loadRewarded();
 
@@ -87,11 +124,38 @@ class _RewardedAdButtonState
         'Ad is still loading. Please try again shortly.',
         AppColors.orange,
       );
+
       return;
     }
 
+    setState(() {
+      _isShowingAd = true;
+    });
+
     AdService.instance.showRewarded(
-      onRewardEarned: _giveCoins,
+      onRewardEarned: () async {
+        if (mounted) {
+          setState(() {
+            _isShowingAd = false;
+          });
+        }
+
+        await _giveCoins();
+      },
+    );
+
+    // Safety reset in case the ad closes without reward.
+    Future<void>.delayed(
+      const Duration(seconds: 2),
+          () {
+        if (!mounted) return;
+
+        if (!_isGivingReward) {
+          setState(() {
+            _isShowingAd = false;
+          });
+        }
+      },
     );
   }
 
@@ -99,70 +163,94 @@ class _RewardedAdButtonState
       String message,
       Color color,
       ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: color,
+          behavior:
+          SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
-    final userAsync = ref.watch(currentUserProvider);
+    final premiumState =
+    ref.watch(premiumProvider);
 
-    return userAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (error, stackTrace) =>
-      const SizedBox.shrink(),
-      data: (user) {
-        final isPremium = user?.isPremium ?? false;
+    if (premiumState.isLoading) {
+      return const SizedBox.shrink();
+    }
 
-        if (isPremium) {
-          return const SizedBox.shrink();
-        }
+    final isPremium =
+        premiumState.value ?? false;
 
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed:
-            _isGivingReward ? null : _showAd,
-            icon: _isGivingReward
-                ? const SizedBox(
-              width: 20,
-              height: 20,
-              child:
-              CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.white,
-              ),
-            )
-                : const Icon(
-              Icons.ondemand_video_rounded,
-            ),
-            label: Text(
-              _isGivingReward
-                  ? 'Adding Coins...'
-                  : 'Watch Ad & Earn ${widget.rewardCoins} Coins',
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-              AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              padding:
-              const EdgeInsets.symmetric(
-                horizontal: 18,
-                vertical: 15,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                BorderRadius.circular(18),
-              ),
+    // Premium users never see rewarded ads.
+    if (isPremium) {
+      return const SizedBox.shrink();
+    }
+
+    final isBusy =
+        _isGivingReward ||
+            _isShowingAd;
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed:
+        isBusy ? null : _showAd,
+        icon: isBusy
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child:
+          CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: Colors.white,
+          ),
+        )
+            : const Icon(
+          Icons
+              .ondemand_video_rounded,
+        ),
+        label: Text(
+          _isGivingReward
+              ? 'Adding Coins...'
+              : _isShowingAd
+              ? 'Opening Ad...'
+              : 'Watch Ad & Earn ${widget.rewardCoins} Coins',
+        ),
+        style:
+        ElevatedButton.styleFrom(
+          backgroundColor:
+          AppColors.primaryBlue,
+          foregroundColor:
+          Colors.white,
+          disabledBackgroundColor:
+          AppColors.primaryBlue
+              .withValues(
+            alpha: 0.55,
+          ),
+          disabledForegroundColor:
+          Colors.white,
+          padding:
+          const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 15,
+          ),
+          shape:
+          RoundedRectangleBorder(
+            borderRadius:
+            BorderRadius.circular(
+              18,
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

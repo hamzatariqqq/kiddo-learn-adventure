@@ -8,6 +8,8 @@ import '../learning/animals/animal_lesson_screen.dart';
 import '../learning/colors/colors_lesson_screen.dart';
 import '../learning/counting/counting_lesson_screen.dart';
 
+import '../../core/widgets/premium_banner_ad.dart';
+
 class LearnScreen extends StatelessWidget {
   const LearnScreen({super.key});
 
@@ -226,6 +228,10 @@ class LearnScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 18),
+
+              const PremiumBannerAd(),
+
+              const SizedBox(height: 12),
             ],
           ),
         ),
