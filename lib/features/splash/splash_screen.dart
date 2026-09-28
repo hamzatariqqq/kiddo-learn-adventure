@@ -8,6 +8,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../auth/screens/login_screen.dart';
 import '../navigation/main_navigation_screen.dart';
 
+import '../../core/services/guest_session_service.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -44,18 +46,24 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  void _openNextScreen() {
+  Future<void> _openNextScreen() async {
     if (!mounted) return;
 
     final user = FirebaseAuth.instance.currentUser;
+    final isGuest = await GuestSessionService.isGuest();
+
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 750),
         pageBuilder: (_, animation, secondaryAnimation) {
-          return user != null
-              ? const MainNavigationScreen()
-              : const LoginScreen();
+          // Logged-in users OR guests can enter the app.
+          if (user != null || isGuest) {
+            return const MainNavigationScreen();
+          }
+
+          return const LoginScreen();
         },
         transitionsBuilder: (_, animation, secondaryAnimation, child) {
           final curvedAnimation = CurvedAnimation(

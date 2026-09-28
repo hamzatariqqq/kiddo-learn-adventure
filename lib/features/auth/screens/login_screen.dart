@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/services/guest_session_service.dart';
 import '../../navigation/main_navigation_screen.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
@@ -31,6 +32,45 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> continueAsGuest() async {
+    if (isLoading) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await GuestSessionService.startGuestSession();
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainNavigationScreen(),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to start guest mode. Please try again.',
+          ),
+          backgroundColor: AppColors.coral,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> login() async {
     if (!_formKey.currentState!.validate() || isLoading) {
       return;
@@ -41,6 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      // Make sure guest mode is cleared when the user logs in.
+      await GuestSessionService.endGuestSession();
+
       await AuthService().login(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -275,6 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 30),
 
+                // LOGIN BUTTON
                 SizedBox(
                   width: double.infinity,
                   height: 58,
@@ -308,18 +352,67 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
+
+                // GUEST BUTTON
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                    isLoading ? null : continueAsGuest,
+                    icon: const Icon(
+                      Icons.person_outline_rounded,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Continue as Guest',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: Colors.white54,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 7),
+
+                const Center(
+                  child: Text(
+                    'No account required',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
 
                 Center(
                   child: TextButton(
-                    onPressed: () {
+                    onPressed: isLoading
+                        ? null
+                        : () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ForgotPasswordScreen(
-                            initialEmail:
-                            emailController.text.trim(),
-                          ),
+                          builder: (_) =>
+                              ForgotPasswordScreen(
+                                initialEmail:
+                                emailController.text.trim(),
+                              ),
                         ),
                       );
                     },
@@ -347,11 +440,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: isLoading
+                          ? null
+                          : () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const SignupScreen(),
+                            builder: (_) =>
+                            const SignupScreen(),
                           ),
                         );
                       },

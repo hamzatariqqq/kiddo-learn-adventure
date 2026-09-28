@@ -2,12 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../providers/premium_provider.dart';
 import '../services/ad_service.dart';
 
-class RewardedAdButton extends ConsumerStatefulWidget {
+class RewardedAdButton
+    extends ConsumerStatefulWidget {
   const RewardedAdButton({
     super.key,
     this.rewardCoins = 100,
@@ -16,7 +18,8 @@ class RewardedAdButton extends ConsumerStatefulWidget {
   final int rewardCoins;
 
   @override
-  ConsumerState<RewardedAdButton> createState() =>
+  ConsumerState<RewardedAdButton>
+  createState() =>
       _RewardedAdButtonState();
 }
 
@@ -25,18 +28,23 @@ class _RewardedAdButtonState
   bool _isGivingReward = false;
   bool _isShowingAd = false;
 
+  static const String _guestCoinsKey =
+      'guest_coins';
+
   @override
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) {
       _prepareRewardedAd();
     });
   }
 
   void _prepareRewardedAd() {
     final isPremium =
-        ref.read(premiumProvider).value ?? false;
+        ref.read(premiumProvider).value ??
+            false;
 
     if (isPremium) {
       return;
@@ -45,19 +53,12 @@ class _RewardedAdButtonState
     AdService.instance.loadRewarded();
   }
 
+  // =====================================================
+  // GIVE REWARD
+  // =====================================================
+
   Future<void> _giveCoins() async {
     if (_isGivingReward) {
-      return;
-    }
-
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      _showMessage(
-        'Please login before claiming this reward.',
-        AppColors.coral,
-      );
-
       return;
     }
 
@@ -66,21 +67,24 @@ class _RewardedAdButtonState
     });
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .set(
-        {
-          'coins': FieldValue.increment(
-            widget.rewardCoins,
-          ),
-          'lastRewardedAdAt':
-          FieldValue.serverTimestamp(),
-        },
-        SetOptions(
-          merge: true,
-        ),
-      );
+      final user =
+          FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        // =============================
+        // GUEST REWARD
+        // =============================
+
+        await _giveGuestCoins();
+      } else {
+        // =============================
+        // FIREBASE ACCOUNT REWARD
+        // =============================
+
+        await _giveFirebaseCoins(
+          user.uid,
+        );
+      }
 
       if (!mounted) return;
 
@@ -104,6 +108,51 @@ class _RewardedAdButtonState
     }
   }
 
+  // =====================================================
+  // FIREBASE COINS
+  // =====================================================
+
+  Future<void> _giveFirebaseCoins(
+      String userId,
+      ) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .set(
+      {
+        'coins': FieldValue.increment(
+          widget.rewardCoins,
+        ),
+        'lastRewardedAdAt':
+        FieldValue.serverTimestamp(),
+      },
+      SetOptions(
+        merge: true,
+      ),
+    );
+  }
+
+  // =====================================================
+  // GUEST COINS
+  // =====================================================
+
+  Future<void> _giveGuestCoins() async {
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    final currentCoins =
+        prefs.getInt(_guestCoinsKey) ?? 0;
+
+    await prefs.setInt(
+      _guestCoinsKey,
+      currentCoins + widget.rewardCoins,
+    );
+  }
+
+  // =====================================================
+  // SHOW AD
+  // =====================================================
+
   void _showAd() {
     if (_isShowingAd ||
         _isGivingReward) {
@@ -111,13 +160,15 @@ class _RewardedAdButtonState
     }
 
     final isPremium =
-        ref.read(premiumProvider).value ?? false;
+        ref.read(premiumProvider).value ??
+            false;
 
     if (isPremium) {
       return;
     }
 
-    if (!AdService.instance.isRewardedReady) {
+    if (!AdService
+        .instance.isRewardedReady) {
       AdService.instance.loadRewarded();
 
       _showMessage(
@@ -144,7 +195,8 @@ class _RewardedAdButtonState
       },
     );
 
-    // Safety reset in case the ad closes without reward.
+    // Safety reset in case the ad closes
+    // without earning a reward.
     Future<void>.delayed(
       const Duration(seconds: 2),
           () {
@@ -158,6 +210,10 @@ class _RewardedAdButtonState
       },
     );
   }
+
+  // =====================================================
+  // MESSAGE
+  // =====================================================
 
   void _showMessage(
       String message,
@@ -176,6 +232,10 @@ class _RewardedAdButtonState
         ),
       );
   }
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   @override
   Widget build(BuildContext context) {
@@ -214,8 +274,7 @@ class _RewardedAdButtonState
           ),
         )
             : const Icon(
-          Icons
-              .ondemand_video_rounded,
+          Icons.ondemand_video_rounded,
         ),
         label: Text(
           _isGivingReward
@@ -224,8 +283,7 @@ class _RewardedAdButtonState
               ? 'Opening Ad...'
               : 'Watch Ad & Earn ${widget.rewardCoins} Coins',
         ),
-        style:
-        ElevatedButton.styleFrom(
+        style: ElevatedButton.styleFrom(
           backgroundColor:
           AppColors.primaryBlue,
           foregroundColor:
@@ -242,12 +300,9 @@ class _RewardedAdButtonState
             horizontal: 18,
             vertical: 15,
           ),
-          shape:
-          RoundedRectangleBorder(
+          shape: RoundedRectangleBorder(
             borderRadius:
-            BorderRadius.circular(
-              18,
-            ),
+            BorderRadius.circular(18),
           ),
         ),
       ),

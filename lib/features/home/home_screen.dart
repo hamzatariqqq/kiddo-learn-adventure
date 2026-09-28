@@ -10,16 +10,86 @@ import '../learning/alphabet/alphabet_learning_screen.dart';
 import '../learning/animals/animal_lesson_screen.dart';
 import '../learning/colors/colors_lesson_screen.dart';
 import '../learning/counting/counting_lesson_screen.dart';
+import '../learning/services/lesson_service.dart';
 import '../parent/parent_dashboard_screen.dart';
 import '../rewards/daily_reward_card.dart';
 import '../settings/settings_screen.dart';
 
+// =====================================================
+// GUEST HOME PROGRESS
+// =====================================================
+
+final guestHomeProgressProvider =
+FutureProvider<GuestHomeProgress>((ref) async {
+  final lessonService = LessonService();
+
+  final results = await Future.wait<dynamic>([
+    lessonService.getGuestStars(),
+    lessonService.getGuestCoins(),
+    lessonService.getGuestXp(),
+    lessonService.getGuestLevel(),
+    lessonService.getCompletedLessons(),
+  ]);
+
+  return GuestHomeProgress(
+    stars: results[0] as int,
+    coins: results[1] as int,
+    xp: results[2] as int,
+    level: results[3] as int,
+    completedLessonIds: List<String>.from(
+      results[4] as List<String>,
+    ),
+  );
+});
+
+class GuestHomeProgress {
+  final int stars;
+  final int coins;
+  final int xp;
+  final int level;
+  final List<String> completedLessonIds;
+
+  const GuestHomeProgress({
+    required this.stars,
+    required this.coins,
+    required this.xp,
+    required this.level,
+    required this.completedLessonIds,
+  });
+}
+
+// =====================================================
+// HOME SCREEN
+// =====================================================
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
+
+  void _refreshProgress(WidgetRef ref) {
+    ref.invalidate(guestHomeProgressProvider);
+    ref.invalidate(currentUserProvider);
+  }
+
+  Future<void> _openLesson({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Widget screen,
+  }) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => screen,
+      ),
+    );
+
+    _refreshProgress(ref);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
+    final guestProgressAsync =
+    ref.watch(guestHomeProgressProvider);
 
     return userAsync.when(
       loading: () => const Scaffold(
@@ -28,7 +98,6 @@ class HomeScreen extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
       ),
-
       error: (error, stackTrace) => Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
@@ -44,13 +113,24 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-
       data: (user) {
-        final name = user?.name ?? 'Explorer';
-        final stars = user?.stars ?? 0;
+        final isGuest = user == null;
+        final guestProgress = guestProgressAsync.whenOrNull(
+          data: (data) => data,
+        );
 
-        final completedLessonIds =
-            user?.completedLessonIds ?? const <String>[];
+        final name = isGuest
+            ? 'Explorer'
+            : user.name;
+
+        final stars = isGuest
+            ? (guestProgress?.stars ?? 0)
+            : user.stars;
+
+        final completedLessonIds = isGuest
+            ? (guestProgress?.completedLessonIds ??
+            const <String>[])
+            : user.completedLessonIds;
 
         final alphabetDone =
         completedLessonIds.contains('alphabet');
@@ -71,7 +151,6 @@ class HomeScreen extends ConsumerWidget {
               const Positioned.fill(
                 child: _KidBackground(),
               ),
-
               SafeArea(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(
@@ -102,9 +181,7 @@ class HomeScreen extends ConsumerWidget {
                                     FontWeight.w900,
                                   ),
                                 ),
-
                                 const SizedBox(height: 3),
-
                                 const Text(
                                   'Let\'s learn & play!',
                                   style: TextStyle(
@@ -118,7 +195,6 @@ class HomeScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-
                           _SmallTopButton(
                             icon:
                             Icons.family_restroom_rounded,
@@ -132,19 +208,19 @@ class HomeScreen extends ConsumerWidget {
                               );
                             },
                           ),
-
                           const SizedBox(width: 8),
-
                           _SmallTopButton(
                             icon: Icons.settings_rounded,
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
                                   const SettingsScreen(),
                                 ),
                               );
+
+                              _refreshProgress(ref);
                             },
                           ),
                         ],
@@ -158,18 +234,21 @@ class HomeScreen extends ConsumerWidget {
 
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
+                        padding:
+                        const EdgeInsets.symmetric(
                           horizontal: 18,
                           vertical: 18,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.surface.withValues(
+                          color: AppColors.surface
+                              .withValues(
                             alpha: 0.92,
                           ),
                           borderRadius:
                           BorderRadius.circular(28),
                           border: Border.all(
-                            color: AppColors.cyan.withValues(
+                            color: AppColors.cyan
+                                .withValues(
                               alpha: 0.25,
                             ),
                           ),
@@ -180,7 +259,8 @@ class HomeScreen extends ConsumerWidget {
                               width: 78,
                               height: 78,
                               decoration: BoxDecoration(
-                                color: AppColors.cyan.withValues(
+                                color: AppColors.cyan
+                                    .withValues(
                                   alpha: 0.15,
                                 ),
                                 shape: BoxShape.circle,
@@ -194,9 +274,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-
                             const SizedBox(width: 16),
-
                             const Expanded(
                               child: Column(
                                 crossAxisAlignment:
@@ -250,64 +328,57 @@ class HomeScreen extends ConsumerWidget {
                             subtitle: 'Alphabets',
                             color: AppColors.cyan,
                             isCompleted: alphabetDone,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                  const AlphabetLearningScreen(),
-                                ),
+                            onTap: () async {
+                              await _openLesson(
+                                context: context,
+                                ref: ref,
+                                screen:
+                                const AlphabetLearningScreen(),
                               );
                             },
                           ),
-
                           _KidLearningCard(
                             emoji: '🔢',
                             title: '123',
                             subtitle: 'Numbers',
                             color: AppColors.orange,
                             isCompleted: numbersDone,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                  const CountingLessonScreen(),
-                                ),
+                            onTap: () async {
+                              await _openLesson(
+                                context: context,
+                                ref: ref,
+                                screen:
+                                const CountingLessonScreen(),
                               );
                             },
                           ),
-
                           _KidLearningCard(
                             emoji: '🐶',
                             title: 'Animals',
                             subtitle: 'Learn Animals',
                             color: AppColors.green,
                             isCompleted: animalsDone,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                  const AnimalLessonScreen(),
-                                ),
+                            onTap: () async {
+                              await _openLesson(
+                                context: context,
+                                ref: ref,
+                                screen:
+                                const AnimalLessonScreen(),
                               );
                             },
                           ),
-
                           _KidLearningCard(
                             emoji: '🎨',
                             title: 'Colors',
                             subtitle: 'Learn Colors',
                             color: AppColors.purple,
                             isCompleted: colorsDone,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                  const ColorsLessonScreen(),
-                                ),
+                            onTap: () async {
+                              await _openLesson(
+                                context: context,
+                                ref: ref,
+                                screen:
+                                const ColorsLessonScreen(),
                               );
                             },
                           ),
@@ -322,18 +393,21 @@ class HomeScreen extends ConsumerWidget {
 
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
+                        padding:
+                        const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.gold.withValues(
+                          color: AppColors.gold
+                              .withValues(
                             alpha: 0.12,
                           ),
                           borderRadius:
                           BorderRadius.circular(22),
                           border: Border.all(
-                            color: AppColors.gold.withValues(
+                            color: AppColors.gold
+                                .withValues(
                               alpha: 0.30,
                             ),
                           ),
@@ -346,9 +420,7 @@ class HomeScreen extends ConsumerWidget {
                                 fontSize: 38,
                               ),
                             ),
-
                             const SizedBox(width: 13),
-
                             Expanded(
                               child: Column(
                                 crossAxisAlignment:
@@ -357,14 +429,13 @@ class HomeScreen extends ConsumerWidget {
                                   const Text(
                                     'My Stars',
                                     style: TextStyle(
-                                      color:
-                                      AppColors.textSecondary,
+                                      color: AppColors
+                                          .textSecondary,
                                       fontSize: 12,
                                       fontWeight:
                                       FontWeight.w600,
                                     ),
                                   ),
-
                                   Text(
                                     '$stars Stars',
                                     style: const TextStyle(
@@ -378,7 +449,6 @@ class HomeScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-
                             const Text(
                               '✨',
                               style: TextStyle(
@@ -401,7 +471,6 @@ class HomeScreen extends ConsumerWidget {
 
                       // =========================
                       // OPTIONAL REWARDED AD
-                      // Kept separate from learning
                       // =========================
 
                       const RewardedAdButton(),
@@ -487,7 +556,6 @@ class _KidLearningCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               if (isCompleted)
                 Positioned(
                   top: 12,
@@ -495,7 +563,8 @@ class _KidLearningCard extends StatelessWidget {
                   child: Container(
                     width: 29,
                     height: 29,
-                    decoration: const BoxDecoration(
+                    decoration:
+                    const BoxDecoration(
                       color: AppColors.green,
                       shape: BoxShape.circle,
                     ),
@@ -506,7 +575,6 @@ class _KidLearningCard extends StatelessWidget {
                     ),
                   ),
                 ),
-
               Center(
                 child: Padding(
                   padding: const EdgeInsets.all(14),
@@ -520,9 +588,7 @@ class _KidLearningCard extends StatelessWidget {
                           fontSize: 55,
                         ),
                       ),
-
                       const SizedBox(height: 9),
-
                       Text(
                         title,
                         textAlign: TextAlign.center,
@@ -533,9 +599,7 @@ class _KidLearningCard extends StatelessWidget {
                           FontWeight.w900,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         subtitle,
                         textAlign: TextAlign.center,
@@ -559,9 +623,9 @@ class _KidLearningCard extends StatelessWidget {
   }
 }
 
-
+// =====================================================
 // SMALL ADULT BUTTON
-
+// =====================================================
 
 class _SmallTopButton extends StatelessWidget {
   const _SmallTopButton({
@@ -602,7 +666,9 @@ class _SmallTopButton extends StatelessWidget {
   }
 }
 
+// =====================================================
 // BACKGROUND
+// =====================================================
 
 class _KidBackground extends StatelessWidget {
   const _KidBackground();
@@ -631,7 +697,6 @@ class _KidBackground extends StatelessWidget {
               color: AppColors.cyan,
             ),
           ),
-
           Positioned(
             top: 500,
             left: -90,
@@ -640,7 +705,6 @@ class _KidBackground extends StatelessWidget {
               color: AppColors.purple,
             ),
           ),
-
           Positioned(
             bottom: 80,
             right: -80,

@@ -5,6 +5,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/models/badge_data.dart';
+import '../../core/providers/progress_provider.dart';
 import '../../core/widgets/badge_card.dart';
 import '../../core/widgets/kiddo_card.dart';
 import '../auth/providers/user_provider.dart';
@@ -15,6 +16,7 @@ class BadgesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
+    final localProgress = ref.watch(progressProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -39,18 +41,34 @@ class BadgesScreen extends ConsumerWidget {
           ),
         ),
         data: (user) {
-          final stars = user?.stars ?? 0;
-          final completedLessons = user?.completedLessons ?? 0;
+          final isGuest = user == null;
+
+          final stars = isGuest
+              ? localProgress.stars
+              : user.stars;
+
+          final completedLessons = isGuest
+              ? localProgress.completedLessons
+              : user.completedLessons;
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(currentUserProvider);
+              if (isGuest) {
+                await ref
+                    .read(progressProvider.notifier)
+                    .refreshProgress();
+              } else {
+                ref.invalidate(currentUserProvider);
+              }
             },
             child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.large),
+              physics:
+              const AlwaysScrollableScrollPhysics(),
+              padding:
+              const EdgeInsets.all(AppSpacing.large),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                CrossAxisAlignment.start,
                 children: [
                   KiddoCard(
                     backgroundColor: AppColors.yellow,
@@ -63,17 +81,24 @@ class BadgesScreen extends ConsumerWidget {
                             size: 60,
                             color: AppColors.white,
                           ),
+
                           const SizedBox(height: 8),
+
                           Text(
                             '$stars Stars',
-                            style: AppTextStyles.headingLarge.copyWith(
+                            style: AppTextStyles
+                                .headingLarge
+                                .copyWith(
                               color: AppColors.white,
                             ),
                           ),
+
                           const SizedBox(height: 4),
+
                           Text(
                             '$completedLessons lessons completed',
-                            style: AppTextStyles.body.copyWith(
+                            style:
+                            AppTextStyles.body.copyWith(
                               color: AppColors.white,
                             ),
                           ),
@@ -82,18 +107,23 @@ class BadgesScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.large),
+                  const SizedBox(
+                    height: AppSpacing.large,
+                  ),
 
                   const Text(
                     'Your Badges',
                     style: AppTextStyles.headingMedium,
                   ),
 
-                  const SizedBox(height: AppSpacing.medium),
+                  const SizedBox(
+                    height: AppSpacing.medium,
+                  ),
 
                   GridView.builder(
                     shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                    physics:
+                    const NeverScrollableScrollPhysics(),
                     itemCount: BadgeData.badges.length,
                     gridDelegate:
                     const SliverGridDelegateWithFixedCrossAxisCount(
@@ -103,10 +133,12 @@ class BadgesScreen extends ConsumerWidget {
                       childAspectRatio: 0.75,
                     ),
                     itemBuilder: (context, index) {
-                      final badge = BadgeData.badges[index];
+                      final badge =
+                      BadgeData.badges[index];
 
                       final isUnlocked =
-                          completedLessons >= badge.requiredLessons;
+                          completedLessons >=
+                              badge.requiredLessons;
 
                       return BadgeCard(
                         badge: badge,

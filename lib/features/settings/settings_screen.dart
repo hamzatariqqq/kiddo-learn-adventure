@@ -1,19 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 import '../../app/theme/app_text_styles.dart';
 import '../../core/providers/progress_provider.dart';
+import '../../core/services/guest_session_service.dart';
 import '../../core/widgets/parent_gate_dialog.dart';
 import '../auth/providers/user_provider.dart';
 import '../auth/screens/login_screen.dart';
 import '../auth/services/auth_service.dart';
-import '../parent/parent_dashboard_screen.dart';
-
 import '../legal/privacy_policy_screen.dart';
 import '../legal/terms_conditions_screen.dart';
+import '../parent/parent_dashboard_screen.dart';
 import '../premium/premium_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -25,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isGuest = FirebaseAuth.instance.currentUser == null;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -52,16 +55,22 @@ class SettingsScreen extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               Text(
                 'Manage your app and account preferences.',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: Colors.white70,
                 ),
               ),
+
               const SizedBox(height: AppSpacing.large),
 
-              // Parent Dashboard
+              // =====================================================
+              // PARENT DASHBOARD
+              // =====================================================
+
               _SettingsTile(
                 icon: Icons.family_restroom_rounded,
                 iconColor: AppColors.primaryBlue,
@@ -69,22 +78,39 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'View child progress and activity',
                 trailingIcon: Icons.arrow_forward_ios_rounded,
                 onTap: () async {
-                  final allowed = await ParentGateDialog.show(context);
+                  final allowed =
+                  await ParentGateDialog.show(context);
 
-                  if (!context.mounted || !allowed) return;
+                  if (!context.mounted || !allowed) {
+                    return;
+                  }
 
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ParentDashboardScreen(),
+                      builder: (_) =>
+                      const ParentDashboardScreen(),
                     ),
                   );
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  await ref
+                      .read(progressProvider.notifier)
+                      .refreshProgress();
+
+                  ref.invalidate(currentUserProvider);
                 },
               ),
 
               const SizedBox(height: AppSpacing.medium),
 
-              // Reset Progress
+              // =====================================================
+              // RESET PROGRESS
+              // =====================================================
+
               _SettingsTile(
                 icon: Icons.restart_alt_rounded,
                 iconColor: AppColors.orange,
@@ -92,47 +118,111 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Clear stars and completed lessons',
                 trailingIcon: Icons.arrow_forward_ios_rounded,
                 onTap: () async {
-                  final allowed = await ParentGateDialog.show(context);
+                  final allowed =
+                  await ParentGateDialog.show(context);
 
-                  if (!context.mounted || !allowed) return;
+                  if (!context.mounted || !allowed) {
+                    return;
+                  }
 
-                  _showResetDialog(context, ref);
+                  _showResetDialog(
+                    context,
+                    ref,
+                    isGuest: isGuest,
+                  );
                 },
               ),
 
               const SizedBox(height: AppSpacing.medium),
 
-              // Logout
-              _SettingsTile(
-                icon: Icons.logout_rounded,
-                iconColor: const Color(0xFF9B6DFF),
-                title: 'Logout',
-                subtitle: 'Sign out from your account',
-                trailingIcon: Icons.arrow_forward_ios_rounded,
-                onTap: () {
-                  _showLogoutDialog(context, ref);
-                },
-              ),
+              // =====================================================
+              // GUEST ACCOUNT OPTIONS
+              // =====================================================
 
-              const SizedBox(height: AppSpacing.medium),
+              if (isGuest) ...[
+                _SettingsTile(
+                  icon: Icons.login_rounded,
+                  iconColor: AppColors.green,
+                  title: 'Sign In / Create Account',
+                  subtitle:
+                  'Save and sync your progress with an account',
+                  trailingIcon:
+                  Icons.arrow_forward_ios_rounded,
+                  onTap: () async {
+                    final allowed =
+                    await ParentGateDialog.show(context);
 
-              // Delete Account
-              _SettingsTile(
-                icon: Icons.delete_forever_rounded,
-                iconColor: AppColors.coral,
-                title: 'Delete Account',
-                subtitle: 'Permanently delete your account and data',
-                trailingIcon: Icons.arrow_forward_ios_rounded,
-                onTap: () async {
-                  final allowed = await ParentGateDialog.show(context);
+                    if (!context.mounted || !allowed) {
+                      return;
+                    }
 
-                  if (!context.mounted || !allowed) return;
+                    _showExitGuestDialog(
+                      context,
+                      ref,
+                    );
+                  },
+                ),
 
-                  await _openDeleteAccountDialog(context, ref);
-                },
-              ),
+                const SizedBox(
+                  height: AppSpacing.medium,
+                ),
+              ],
 
-              const SizedBox(height: AppSpacing.medium),
+              // =====================================================
+              // LOGGED-IN ACCOUNT OPTIONS
+              // =====================================================
+
+              if (!isGuest) ...[
+                _SettingsTile(
+                  icon: Icons.logout_rounded,
+                  iconColor: const Color(0xFF9B6DFF),
+                  title: 'Logout',
+                  subtitle: 'Sign out from your account',
+                  trailingIcon:
+                  Icons.arrow_forward_ios_rounded,
+                  onTap: () {
+                    _showLogoutDialog(
+                      context,
+                      ref,
+                    );
+                  },
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.medium,
+                ),
+
+                _SettingsTile(
+                  icon: Icons.delete_forever_rounded,
+                  iconColor: AppColors.coral,
+                  title: 'Delete Account',
+                  subtitle:
+                  'Permanently delete your account and data',
+                  trailingIcon:
+                  Icons.arrow_forward_ios_rounded,
+                  onTap: () async {
+                    final allowed =
+                    await ParentGateDialog.show(context);
+
+                    if (!context.mounted || !allowed) {
+                      return;
+                    }
+
+                    await _openDeleteAccountDialog(
+                      context,
+                      ref,
+                    );
+                  },
+                ),
+
+                const SizedBox(
+                  height: AppSpacing.medium,
+                ),
+              ],
+
+              // =====================================================
+              // PRIVACY POLICY
+              // =====================================================
 
               _SettingsTile(
                 icon: Icons.privacy_tip_rounded,
@@ -144,13 +234,18 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PrivacyPolicyScreen(),
+                      builder: (_) =>
+                      const PrivacyPolicyScreen(),
                     ),
                   );
                 },
               ),
 
               const SizedBox(height: AppSpacing.medium),
+
+              // =====================================================
+              // TERMS
+              // =====================================================
 
               _SettingsTile(
                 icon: Icons.description_rounded,
@@ -162,7 +257,8 @@ class SettingsScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const TermsConditionsScreen(),
+                      builder: (_) =>
+                      const TermsConditionsScreen(),
                     ),
                   );
                 },
@@ -170,25 +266,48 @@ class SettingsScreen extends ConsumerWidget {
 
               const SizedBox(height: AppSpacing.medium),
 
+              // =====================================================
+              // PREMIUM
+              // =====================================================
+
               _SettingsTile(
                 icon: Icons.workspace_premium_rounded,
                 iconColor: AppColors.gold,
                 title: 'Go Premium',
-                subtitle: 'Remove ads and unlock premium features',
+                subtitle:
+                'Remove ads and unlock premium features',
                 trailingIcon: Icons.arrow_forward_ios_rounded,
                 onTap: () async {
-                  final allowed = await ParentGateDialog.show(context);
+                  final allowed =
+                  await ParentGateDialog.show(context);
 
-                  if (!context.mounted || !allowed) return;
+                  if (!context.mounted || !allowed) {
+                    return;
+                  }
+
+                  if (isGuest) {
+                    _showExitGuestDialog(
+                      context,
+                      ref,
+                    );
+                    return;
+                  }
 
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PremiumScreen(),
+                      builder: (_) =>
+                      const PremiumScreen(),
                     ),
                   );
                 },
               ),
+
+              const SizedBox(height: AppSpacing.medium),
+
+              // =====================================================
+              // ABOUT
+              // =====================================================
 
               const _SettingsTile(
                 icon: Icons.info_rounded,
@@ -203,10 +322,15 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  // =====================================================
+  // RESET PROGRESS
+  // =====================================================
+
   void _showResetDialog(
       BuildContext context,
-      WidgetRef ref,
-      ) {
+      WidgetRef ref, {
+        required bool isGuest,
+      }) {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -238,10 +362,26 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(dialogContext);
 
-                ref.read(progressProvider.notifier).resetProgress();
+                if (isGuest) {
+                  await _resetGuestProgress();
+
+                  await ref
+                      .read(progressProvider.notifier)
+                      .refreshProgress();
+                } else {
+                  ref
+                      .read(progressProvider.notifier)
+                      .resetProgress();
+                }
+
+                if (!context.mounted) {
+                  return;
+                }
+
+                ref.invalidate(currentUserProvider);
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -264,6 +404,114 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
   }
+
+  Future<void> _resetGuestProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('guest_completed_lesson_ids');
+    await prefs.remove('guest_stars');
+    await prefs.remove('guest_coins');
+    await prefs.remove('guest_xp');
+    await prefs.remove('guest_level');
+    await prefs.remove('guest_reward_streak');
+    await prefs.remove('guest_last_reward_claim');
+  }
+
+  // =====================================================
+  // EXIT GUEST MODE
+  // =====================================================
+
+  void _showExitGuestDialog(
+      BuildContext context,
+      WidgetRef ref,
+      ) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: cardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            'Sign In or Create Account?',
+            style: TextStyle(
+              color: cardTitleColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'You will return to the login screen. '
+                'Your guest progress will stay saved on this device.',
+            style: TextStyle(
+              color: cardSubtitleColor,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+
+                try {
+                  await GuestSessionService
+                      .endGuestSession();
+
+                  ref.invalidate(authStateProvider);
+                  ref.invalidate(currentUserProvider);
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                      const LoginScreen(),
+                    ),
+                        (route) => false,
+                  );
+                } catch (_) {
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Unable to exit guest mode. Please try again.',
+                      ),
+                      backgroundColor: AppColors.coral,
+                      behavior:
+                      SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor:
+                AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
   void _showLogoutDialog(
       BuildContext context,
@@ -304,30 +552,42 @@ class SettingsScreen extends ConsumerWidget {
                 try {
                   await AuthService().logout();
 
+                  await GuestSessionService
+                      .endGuestSession();
+
                   ref.invalidate(authStateProvider);
                   ref.invalidate(currentUserProvider);
 
-                  ref.read(progressProvider.notifier).resetProgress();
+                  ref
+                      .read(progressProvider.notifier)
+                      .resetProgress();
 
-                  if (!context.mounted) return;
+                  if (!context.mounted) {
+                    return;
+                  }
 
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const LoginScreen(),
+                      builder: (_) =>
+                      const LoginScreen(),
                     ),
                         (route) => false,
                   );
                 } catch (_) {
-                  if (!context.mounted) return;
+                  if (!context.mounted) {
+                    return;
+                  }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(
                     const SnackBar(
                       content: Text(
                         'Unable to logout. Please try again.',
                       ),
                       backgroundColor: AppColors.coral,
-                      behavior: SnackBarBehavior.floating,
+                      behavior:
+                      SnackBarBehavior.floating,
                     ),
                   );
                 }
@@ -344,11 +604,16 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  // =====================================================
+  // DELETE ACCOUNT
+  // =====================================================
+
   Future<void> _openDeleteAccountDialog(
       BuildContext context,
       WidgetRef ref,
       ) async {
-    final passwordController = TextEditingController();
+    final passwordController =
+    TextEditingController();
 
     final password = await showDialog<String>(
       context: context,
@@ -358,11 +623,15 @@ class SettingsScreen extends ConsumerWidget {
         String? validationMessage;
 
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (
+              context,
+              setDialogState,
+              ) {
             return AlertDialog(
               backgroundColor: cardBackground,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius:
+                BorderRadius.circular(24),
               ),
               title: const Text(
                 'Delete Account?',
@@ -374,7 +643,8 @@ class SettingsScreen extends ConsumerWidget {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Your account, progress, stars, coins, XP and '
@@ -384,7 +654,9 @@ class SettingsScreen extends ConsumerWidget {
                         height: 1.4,
                       ),
                     ),
+
                     const SizedBox(height: 12),
+
                     const Text(
                       'This action cannot be undone.',
                       style: TextStyle(
@@ -392,57 +664,88 @@ class SettingsScreen extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     TextField(
-                      controller: passwordController,
+                      controller:
+                      passwordController,
                       obscureText: hidePassword,
                       style: const TextStyle(
                         color: cardTitleColor,
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Enter your password',
+                        labelText:
+                        'Enter your password',
                         hintText: 'Password',
-                        errorText: validationMessage,
-                        labelStyle: const TextStyle(
-                          color: cardSubtitleColor,
+                        errorText:
+                        validationMessage,
+                        labelStyle:
+                        const TextStyle(
+                          color:
+                          cardSubtitleColor,
                         ),
-                        hintStyle: const TextStyle(
-                          color: cardSubtitleColor,
+                        hintStyle:
+                        const TextStyle(
+                          color:
+                          cardSubtitleColor,
                         ),
                         prefixIcon: const Icon(
                           Icons.lock_outline_rounded,
-                          color: AppColors.primaryBlue,
+                          color:
+                          AppColors.primaryBlue,
                         ),
                         suffixIcon: IconButton(
                           onPressed: () {
                             setDialogState(() {
-                              hidePassword = !hidePassword;
+                              hidePassword =
+                              !hidePassword;
                             });
                           },
                           icon: Icon(
                             hidePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: cardSubtitleColor,
+                                ? Icons
+                                .visibility_off_outlined
+                                : Icons
+                                .visibility_outlined,
+                            color:
+                            cardSubtitleColor,
                           ),
                         ),
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        border:
+                        OutlineInputBorder(
+                          borderRadius:
+                          BorderRadius.circular(
+                            16,
+                          ),
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(
-                            color: AppColors.primaryBlue.withValues(
+                        enabledBorder:
+                        OutlineInputBorder(
+                          borderRadius:
+                          BorderRadius.circular(
+                            16,
+                          ),
+                          borderSide:
+                          BorderSide(
+                            color: AppColors
+                                .primaryBlue
+                                .withValues(
                               alpha: 0.35,
                             ),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: AppColors.primaryBlue,
+                        focusedBorder:
+                        OutlineInputBorder(
+                          borderRadius:
+                          BorderRadius.circular(
+                            16,
+                          ),
+                          borderSide:
+                          const BorderSide(
+                            color: AppColors
+                                .primaryBlue,
                             width: 2,
                           ),
                         ),
@@ -454,20 +757,24 @@ class SettingsScreen extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(dialogContext);
+                    Navigator.pop(
+                      dialogContext,
+                    );
                   },
                   child: const Text('Cancel'),
                 ),
                 FilledButton.icon(
                   onPressed: () {
                     final enteredPassword =
-                    passwordController.text.trim();
+                    passwordController.text
+                        .trim();
 
                     if (enteredPassword.isEmpty) {
                       setDialogState(() {
                         validationMessage =
                         'Please enter your password.';
                       });
+
                       return;
                     }
 
@@ -476,14 +783,18 @@ class SettingsScreen extends ConsumerWidget {
                       enteredPassword,
                     );
                   },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.coral,
-                    foregroundColor: Colors.white,
+                  style:
+                  FilledButton.styleFrom(
+                    backgroundColor:
+                    AppColors.coral,
+                    foregroundColor:
+                    Colors.white,
                   ),
                   icon: const Icon(
                     Icons.delete_forever_rounded,
                   ),
-                  label: const Text('Delete'),
+                  label:
+                  const Text('Delete'),
                 ),
               ],
             );
@@ -494,7 +805,8 @@ class SettingsScreen extends ConsumerWidget {
 
     passwordController.dispose();
 
-    if (password == null || password.isEmpty) {
+    if (password == null ||
+        password.isEmpty) {
       return;
     }
 
@@ -509,7 +821,10 @@ class SettingsScreen extends ConsumerWidget {
           child: AlertDialog(
             backgroundColor: cardBackground,
             content: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
+              padding:
+              EdgeInsets.symmetric(
+                vertical: 20,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -523,7 +838,8 @@ class SettingsScreen extends ConsumerWidget {
                     style: TextStyle(
                       color: cardTitleColor,
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 8),
@@ -531,7 +847,8 @@ class SettingsScreen extends ConsumerWidget {
                     'Please wait and do not close the app.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: cardSubtitleColor,
+                      color:
+                      cardSubtitleColor,
                     ),
                   ),
                 ],
@@ -547,7 +864,12 @@ class SettingsScreen extends ConsumerWidget {
         password: password,
       );
 
-      ref.read(progressProvider.notifier).resetProgress();
+      await GuestSessionService
+          .endGuestSession();
+
+      ref
+          .read(progressProvider.notifier)
+          .resetProgress();
 
       ref.invalidate(authStateProvider);
       ref.invalidate(currentUserProvider);
@@ -562,7 +884,8 @@ class SettingsScreen extends ConsumerWidget {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
+          builder: (_) =>
+          const LoginScreen(),
         ),
             (route) => false,
       );
@@ -574,20 +897,27 @@ class SettingsScreen extends ConsumerWidget {
         rootNavigator: true,
       ).pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         SnackBar(
           content: Text(
-            _deleteAccountErrorMessage(error),
+            _deleteAccountErrorMessage(
+              error,
+            ),
           ),
           backgroundColor: AppColors.coral,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 5),
+          behavior:
+          SnackBarBehavior.floating,
+          duration:
+          const Duration(seconds: 5),
         ),
       );
     }
   }
 
-  String _deleteAccountErrorMessage(Object error) {
+  String _deleteAccountErrorMessage(
+      Object error,
+      ) {
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'wrong-password':
@@ -612,12 +942,19 @@ class SettingsScreen extends ConsumerWidget {
     final message = error.toString();
 
     if (message.startsWith('Exception: ')) {
-      return message.replaceFirst('Exception: ', '');
+      return message.replaceFirst(
+        'Exception: ',
+        '',
+      );
     }
 
     return 'The account could not be deleted. Please try again.';
   }
 }
+
+// =====================================================
+// SETTINGS TILE
+// =====================================================
 
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
@@ -650,13 +987,18 @@ class _SettingsTile extends StatelessWidget {
             vertical: 15,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius:
+            BorderRadius.circular(22),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
+              color: Colors.white.withValues(
+                alpha: 0.35,
+              ),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.10),
+                color: Colors.black.withValues(
+                  alpha: 0.10,
+                ),
                 blurRadius: 16,
                 offset: const Offset(0, 7),
               ),
@@ -668,8 +1010,11 @@ class _SettingsTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(15),
+                  color: iconColor.withValues(
+                    alpha: 0.14,
+                  ),
+                  borderRadius:
+                  BorderRadius.circular(15),
                 ),
                 child: Icon(
                   icon,
@@ -677,33 +1022,44 @@ class _SettingsTile extends StatelessWidget {
                   size: 27,
                 ),
               ),
+
               const SizedBox(width: 14),
+
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: AppTextStyles.title.copyWith(
-                        color: SettingsScreen.cardTitleColor,
-                        fontWeight: FontWeight.bold,
+                      style:
+                      AppTextStyles.title.copyWith(
+                        color: SettingsScreen
+                            .cardTitleColor,
+                        fontWeight:
+                        FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: SettingsScreen.cardSubtitleColor,
+                      style: AppTextStyles
+                          .bodySmall
+                          .copyWith(
+                        color: SettingsScreen
+                            .cardSubtitleColor,
                         height: 1.3,
                       ),
                     ),
                   ],
                 ),
               ),
+
               if (trailingIcon != null)
                 Icon(
                   trailingIcon,
-                  color: AppColors.primaryBlue,
+                  color:
+                  AppColors.primaryBlue,
                   size: 18,
                 ),
             ],

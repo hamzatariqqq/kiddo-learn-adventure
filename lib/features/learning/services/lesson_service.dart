@@ -1,14 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LessonService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Standard reward for every lesson.
   static const int defaultStars = 10;
   static const int defaultCoins = 50;
   static const int defaultXp = 100;
+
+  static const String _guestCompletedLessonsKey =
+      'guest_completed_lesson_ids';
+
+  static const String _guestStarsKey = 'guest_stars';
+  static const String _guestCoinsKey = 'guest_coins';
+  static const String _guestXpKey = 'guest_xp';
+  static const String _guestLevelKey = 'guest_level';
 
   DocumentReference<Map<String, dynamic>>? get _userDocument {
     final user = _auth.currentUser;
@@ -28,10 +36,21 @@ class LessonService {
   }) async {
     final userDocument = _userDocument;
 
+    // ==========================
+    // GUEST MODE
+    // ==========================
     if (userDocument == null) {
-      return false;
+      return _completeGuestLesson(
+        lessonId: lessonId,
+        starsEarned: starsEarned,
+        coinsEarned: coinsEarned,
+        xpEarned: xpEarned,
+      );
     }
 
+    // ==========================
+    // LOGGED-IN USER
+    // ==========================
     return _firestore.runTransaction<bool>((transaction) async {
       final snapshot = await transaction.get(userDocument);
 
@@ -53,7 +72,6 @@ class LessonService {
       final currentXp = (data['xp'] ?? 0) as int;
       final newXp = currentXp + xpEarned;
 
-      // Every 500 XP increases the level.
       final newLevel = (newXp ~/ 500) + 1;
 
       final currentBadges = List<String>.from(
@@ -64,12 +82,10 @@ class LessonService {
         ...currentBadges,
       ];
 
-      // First lesson badge.
       if (!newBadges.contains('first_lesson')) {
         newBadges.add('first_lesson');
       }
 
-      // Lesson-specific badges.
       if (lessonId == 'alphabet' &&
           !newBadges.contains('alphabet_master')) {
         newBadges.add('alphabet_master');
@@ -112,6 +128,66 @@ class LessonService {
     });
   }
 
+  Future<bool> _completeGuestLesson({
+    required String lessonId,
+    required int starsEarned,
+    required int coinsEarned,
+    required int xpEarned,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final completedLessons = prefs.getStringList(
+      _guestCompletedLessonsKey,
+    ) ??
+        <String>[];
+
+    // Don't give rewards twice for the same lesson.
+    if (completedLessons.contains(lessonId)) {
+      return false;
+    }
+
+    completedLessons.add(lessonId);
+
+    final currentStars =
+        prefs.getInt(_guestStarsKey) ?? 0;
+
+    final currentCoins =
+        prefs.getInt(_guestCoinsKey) ?? 0;
+
+    final currentXp =
+        prefs.getInt(_guestXpKey) ?? 0;
+
+    final newXp = currentXp + xpEarned;
+    final newLevel = (newXp ~/ 500) + 1;
+
+    await prefs.setStringList(
+      _guestCompletedLessonsKey,
+      completedLessons,
+    );
+
+    await prefs.setInt(
+      _guestStarsKey,
+      currentStars + starsEarned,
+    );
+
+    await prefs.setInt(
+      _guestCoinsKey,
+      currentCoins + coinsEarned,
+    );
+
+    await prefs.setInt(
+      _guestXpKey,
+      newXp,
+    );
+
+    await prefs.setInt(
+      _guestLevelKey,
+      newLevel,
+    );
+
+    return true;
+  }
+
   Future<bool> isLessonCompleted(
       String lessonId,
       ) async {
@@ -124,10 +200,18 @@ class LessonService {
   Future<List<String>> getCompletedLessons() async {
     final userDocument = _userDocument;
 
+    // Guest progress
     if (userDocument == null) {
-      return [];
+      final prefs =
+      await SharedPreferences.getInstance();
+
+      return prefs.getStringList(
+        _guestCompletedLessonsKey,
+      ) ??
+          <String>[];
     }
 
+    // Account progress
     final snapshot = await userDocument.get();
 
     if (!snapshot.exists) {
@@ -137,7 +221,8 @@ class LessonService {
     final data = snapshot.data();
 
     return List<String>.from(
-      data?['completedLessonIds'] ?? <String>[],
+      data?['completedLessonIds'] ??
+          <String>[],
     );
   }
 
@@ -157,10 +242,14 @@ class LessonService {
   Stream<List<String>> watchCompletedLessons() {
     final userDocument = _userDocument;
 
+    // Guest mode
     if (userDocument == null) {
-      return Stream.value([]);
+      return Stream.fromFuture(
+        getCompletedLessons(),
+      );
     }
 
+    // Logged-in account
     return userDocument.snapshots().map(
           (snapshot) {
         final data = snapshot.data();
@@ -171,5 +260,37 @@ class LessonService {
         );
       },
     );
+  }
+
+  // ==========================
+  // GUEST STATS
+  // ==========================
+
+  Future<int> getGuestStars() async {
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    return prefs.getInt(_guestStarsKey) ?? 0;
+  }
+
+  Future<int> getGuestCoins() async {
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    return prefs.getInt(_guestCoinsKey) ?? 0;
+  }
+
+  Future<int> getGuestXp() async {
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    return prefs.getInt(_guestXpKey) ?? 0;
+  }
+
+  Future<int> getGuestLevel() async {
+    final prefs =
+    await SharedPreferences.getInstance();
+
+    return prefs.getInt(_guestLevelKey) ?? 1;
   }
 }

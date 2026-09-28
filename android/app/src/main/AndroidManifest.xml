@@ -1,17 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Internet required for Firebase and AdMob -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Google Play Billing -->
     <uses-permission android:name="com.android.vending.BILLING" />
+
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:label="Kiddo Learn"
         android:name="${applicationName}"
-        android:icon="@mipmap/launcher_icon">
+        android:icon="@mipmap/launcher_icon"
+        tools:ignore="MissingClass">
 
-        <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-9973042638438490~5218515117" />
@@ -45,13 +46,11 @@
 
     <queries>
 
-        <!-- Flutter text processing -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
 
-        <!-- Text-to-Speech -->
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
